@@ -7,6 +7,7 @@ const zwlr = @import("wayland").client.zwlr;
 
 const Buffer = @import("backend/Buffer.zig");
 const Monitor = @import("backend/Monitor.zig");
+const Widget = @import("backend/Widget.zig");
 
 const Bar = @This();
 
@@ -21,6 +22,8 @@ background: struct {
     viewport: *wp.Viewport,
     buffer: *wl.Buffer,
 },
+
+tags: Widget,
 
 configured: bool,
 width: u16,
@@ -61,7 +64,10 @@ pub fn create(monitor: *Monitor) !*Bar {
     self.layer_surface.setMargin(config.bar_margin_top, config.bar_margin_left, config.bar_margin_bottom, config.bar_margin_right);
     self.layer_surface.setListener(*Bar, layerSurfaceListener, self);
 
+    self.tags = try Widget.init(self.background.surface);
+
     self.background.surface.commit();
+    self.tags.surface.commit();
 
     return self;
 }
@@ -96,6 +102,7 @@ fn layerSurfaceListener(
             bg.viewport.setDestination(bar.width, bar.height);
 
             bar.background.surface.commit();
+            bar.tags.surface.commit();
         },
         .closed => bar.destroy(),
     }

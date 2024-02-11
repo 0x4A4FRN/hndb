@@ -6,15 +6,15 @@ const wl = @import("wayland").client.wl;
 const Buffer = @import("Buffer.zig");
 const Widget = @This();
 
-const state = &@import("root").state;
+const context = &@import("root").context;
 
 surface: *wl.Surface,
 subsurface: *wl.Subsurface,
 buffers: [2]Buffer,
 
 pub fn init(background: *wl.Surface) !Widget {
-    const compositor = state.wayland.compositor.?;
-    const subcompositor = state.wayland.subcompositor.?;
+    const compositor = context.wayland.compositor.?;
+    const subcompositor = context.wayland.subcompositor.?;
 
     const surface = try compositor.createSurface();
     const subsurface = try subcompositor.getSubsurface(surface, background);

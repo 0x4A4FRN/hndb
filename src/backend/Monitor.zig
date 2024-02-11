@@ -1,7 +1,7 @@
 const wl = @import("wayland").client.wl;
 
 const Bar = @import("../Bar.zig");
-//const Tags = @import("../Tags.zig");
+const Tags = @import("../widgets/Tags.zig");
 const Monitor = @This();
 
 const context = &@import("root").context;
@@ -11,7 +11,7 @@ globalName: u32,
 scale: i32,
 
 bar: ?*Bar,
-//tags: *Tags,
+tags: *Tags,
 
 pub fn create(registry: *wl.Registry, name: u32) !*Monitor {
     const self = try context.gpa.create(Monitor);
@@ -20,7 +20,7 @@ pub fn create(registry: *wl.Registry, name: u32) !*Monitor {
     self.scale = 1;
 
     self.bar = null;
-    //    self.tags = try Tags.create(self);
+    self.tags = try Tags.create(self);
 
     self.output.setListener(*Monitor, listener, self);
     return self;
@@ -30,7 +30,8 @@ pub fn destroy(self: *Monitor) void {
     if (self.bar) |bar| {
         bar.destroy();
     }
-    //    self.tags.destroy();
+
+    self.tags.destroy();
     context.gpa.destroy(self);
 }
 
