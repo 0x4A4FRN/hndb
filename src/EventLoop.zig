@@ -6,7 +6,6 @@ const os = std.os;
 const EventLoop = @This();
 
 const context = &@import("root").context;
-const render = @import("render.zig");
 
 sfd: os.fd_t,
 
@@ -67,26 +66,6 @@ pub fn run(self: *EventLoop) !void {
             if (errno != .SUCCESS) return;
         }
 
-        // Use waylands' fd to poll clock
-        if (fds[1].revents & os.POLL.IN != 0) {
-            for (wayland.monitors.items) |monitor| {
-                if (monitor.bar) |bar| {
-                    if (!bar.configured) {
-                        continue;
-                    }
-
-                    try render.renderHour(bar);
-                    try render.renderMinute(bar);
-                    try render.renderAMPM(bar);
-
-                    bar.clockh.surface.commit();
-                    bar.clockm.surface.commit();
-                    bar.clockp.surface.commit();
-
-                    bar.background.surface.commit();
-                }
-            }
-        }
         if (fds[1].revents & os.POLL.OUT != 0) {
             const errno = wayland.display.flush();
             if (errno != .SUCCESS) return;

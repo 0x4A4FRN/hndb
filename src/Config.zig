@@ -11,7 +11,6 @@ bar_margin_left: u16,
 bar_margin_bottom: u16,
 bar_margin_right: u16,
 bar_background_color: pixman.Color,
-bar_foreground_color: pixman.Color,
 
 tag_count: u16,
 tag_height: u16,
@@ -22,8 +21,6 @@ tag_foreground_color_focused: pixman.Color,
 tag_foreground_color_occupied: pixman.Color,
 
 fonts: *fcft.Font,
-
-clock_format: [*:0]const u8,
 
 fn parseColor(str: []const u8) !pixman.Color {
     var val = try std.fmt.parseUnsigned(u32, str[2..], 16);
@@ -42,7 +39,7 @@ fn parseColor(str: []const u8) !pixman.Color {
 }
 
 pub fn init() !Config {
-    var font_names = [_][*:0]const u8{ "Liberation Mono:size=18:style=bold", "mikachan:size=14" };
+    var font_names = [_][*:0]const u8{"mikachan:size=14"};
 
     return Config{
         .bar_height = 0,
@@ -52,7 +49,6 @@ pub fn init() !Config {
         .bar_margin_right = 4,
         .bar_margin_bottom = 4,
         .bar_background_color = try parseColor("0x00000000"),
-        .bar_foreground_color = try parseColor("0xDCDCDCFF"),
         .tag_count = 9,
         .tag_height = 32,
         .tag_width = 48,
@@ -61,6 +57,5 @@ pub fn init() !Config {
         .tag_foreground_color_focused = try parseColor("0xDCDCDCFF"),
         .tag_foreground_color_occupied = try parseColor("0xDCDCDCFF"),
         .fonts = try fcft.Font.fromName(&font_names, null),
-        .clock_format = "%H%M%p",
     };
 }
