@@ -14,6 +14,8 @@ const Bar = @This();
 const context = &@import("root").context;
 const config = &context.config;
 
+const render = @import("render.zig");
+
 monitor: *Monitor,
 
 layer_surface: *zwlr.LayerSurfaceV1,
@@ -24,13 +26,14 @@ background: struct {
 },
 
 tags: Widget,
+clockh: Widget,
+clockm: Widget,
+clockp: Widget,
 
 configured: bool,
 width: u16,
 height: u16,
 
-// Convert a pixman u16 color to a 32-bit color with a pre-multiplied
-// alpha channel as used by the "Single-pixel buffer" Wayland protocol.
 fn toRgba(color: u16) u32 {
     return (@as(u32, color) >> 8) << 24 | 0xffffff;
 }
@@ -65,9 +68,15 @@ pub fn create(monitor: *Monitor) !*Bar {
     self.layer_surface.setListener(*Bar, layerSurfaceListener, self);
 
     self.tags = try Widget.init(self.background.surface);
+    self.clockh = try Widget.init(self.background.surface);
+    self.clockm = try Widget.init(self.background.surface);
+    self.clockp = try Widget.init(self.background.surface);
 
     self.background.surface.commit();
     self.tags.surface.commit();
+    self.clockh.surface.commit();
+    self.clockm.surface.commit();
+    self.clockp.surface.commit();
 
     return self;
 }
@@ -79,6 +88,11 @@ pub fn destroy(self: *Bar) void {
     self.background.surface.destroy();
     self.background.viewport.destroy();
     self.background.buffer.destroy();
+
+    self.tags.deinit();
+    self.clockh.deinit();
+    self.clockm.deinit();
+    self.clockp.deinit();
 
     context.gpa.destroy(self);
 }
@@ -101,8 +115,16 @@ fn layerSurfaceListener(
             bg.surface.damageBuffer(0, 0, bar.width, bar.height);
             bg.viewport.setDestination(bar.width, bar.height);
 
+            render.renderTags(bar) catch |err| {
+                std.log.err("Failed to render Tags for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
+                return;
+            };
+
             bar.background.surface.commit();
             bar.tags.surface.commit();
+            bar.clockh.surface.commit();
+            bar.clockm.surface.commit();
+            bar.clockp.surface.commit();
         },
         .closed => bar.destroy(),
     }

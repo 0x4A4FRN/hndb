@@ -14,7 +14,7 @@ const render = @import("../render.zig");
 
 monitor: *Monitor,
 output_status: *zriver.OutputStatusV1,
-tags: [6]Tag,
+tags: [9]Tag,
 
 pub const Tag = struct {
     label: u32,
@@ -22,10 +22,10 @@ pub const Tag = struct {
     occupied: bool = false,
 
     pub fn glyphColor(self: *const Tag) *pixman.Color {
-        if (self.focused) {
-            return &context.config.bar_foreground_color_focused;
+        if (self.focused or self.occupied) {
+            return &context.config.tag_foreground_color_focused;
         } else {
-            return &context.config.bar_foreground_color_normal;
+            return &context.config.tag_foreground_color_normal;
         }
     }
 };

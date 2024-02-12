@@ -25,7 +25,12 @@ pub fn main() anyerror!void {
     var gpa: heap.GeneralPurposeAllocator(.{}) = .{};
     defer _ = gpa.deinit();
 
-    _ = fcft.init(.auto, false, .warning);
+    if (@import("builtin").mode == .Debug) {
+        _ = fcft.init(.auto, true, .debug);
+    } else {
+        _ = fcft.init(.auto, false, .err);
+    }
+    defer fcft.fini();
 
     context.gpa = gpa.allocator();
     context.config = try Config.init();
