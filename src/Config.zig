@@ -39,23 +39,23 @@ fn parseColor(str: []const u8) !pixman.Color {
 }
 
 pub fn init() !Config {
-    var font_names = [_][*:0]const u8{"mikachan:size=14"};
+    var font_names = [_][*:0]const u8{ "Liberation Mono:size=16", "aquafont:size=14" };
 
     return Config{
-        .bar_height = 0,
-        .bar_width = 48,
+        .bar_height = 24,
+        .bar_width = 0,
         .bar_margin_top = 4,
         .bar_margin_left = 4,
         .bar_margin_right = 4,
         .bar_margin_bottom = 4,
-        .bar_background_color = try parseColor("0x00000000"),
+        .bar_background_color = try parseColor("0x111111E6"),
         .tag_count = 9,
-        .tag_height = 32,
-        .tag_width = 48,
-        .tag_focused_indicator_color = try parseColor("0xE6E6E6FF"),
-        .tag_foreground_color_normal = try parseColor("0x808080FF"),
-        .tag_foreground_color_focused = try parseColor("0xDCDCDCFF"),
-        .tag_foreground_color_occupied = try parseColor("0xDCDCDCFF"),
+        .tag_height = 24,
+        .tag_width = 32,
+        .tag_focused_indicator_color = try parseColor("0xDCDCDCFF"),
+        .tag_foreground_color_normal = try parseColor("0x757575FF"),
+        .tag_foreground_color_focused = try parseColor("0x111111FF"),
+        .tag_foreground_color_occupied = try parseColor("0xFFFFFFFF"),
         .fonts = try fcft.Font.fromName(&font_names, null),
     };
 }

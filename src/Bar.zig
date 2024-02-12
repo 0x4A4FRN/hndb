@@ -59,8 +59,8 @@ pub fn create(monitor: *Monitor) !*Bar {
     self.layer_surface = try layer_shell.getLayerSurface(self.background.surface, monitor.output, .top, "hndb");
 
     self.layer_surface.setSize(config.bar_width, config.bar_height);
-    self.layer_surface.setAnchor(.{ .top = true, .left = true, .bottom = true, .right = false });
-    self.layer_surface.setExclusiveZone(config.bar_width);
+    self.layer_surface.setAnchor(.{ .top = false, .left = true, .bottom = true, .right = true });
+    self.layer_surface.setExclusiveZone(config.bar_height);
     self.layer_surface.setMargin(config.bar_margin_top, config.bar_margin_left, config.bar_margin_bottom, config.bar_margin_right);
     self.layer_surface.setListener(*Bar, layerSurfaceListener, self);
 

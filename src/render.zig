@@ -22,18 +22,18 @@ pub fn renderTags(bar: *Bar) !void {
     const buffers = &bar.tags.buffers;
     const shm = context.wayland.shm.?;
 
-    const height = context.config.tag_height * @as(u16, tags.len);
-    const buffer = try Buffer.nextBuffer(buffers, shm, bar.width, height);
+    const width = context.config.tag_width * @as(u16, tags.len);
+    const buffer = try Buffer.nextBuffer(buffers, shm, width, bar.height);
     if (buffer.buffer == null) return;
     buffer.busy = true;
 
     for (&tags, 0..) |*tag, i| {
-        const offset = context.config.tag_height * i;
-        try renderTag(buffer.pix.?, tag, @intCast(offset), bar.width, context.config.tag_height);
+        const offset = context.config.tag_width * i;
+        try renderTag(buffer.pix.?, tag, @intCast(offset), context.config.tag_width, bar.height);
     }
 
     surface.setBufferScale(bar.monitor.scale);
-    surface.damageBuffer(0, 0, bar.width, height);
+    surface.damageBuffer(0, 0, width, bar.height);
     surface.attach(buffer.buffer, 0, 0);
 }
 
@@ -46,8 +46,8 @@ fn renderTag(
 ) !void {
     const tag_rect = [_]pixman.Rectangle16{
         .{
-            .x = 0,
-            .y = offset,
+            .x = offset,
+            .y = 0,
             .width = width,
             .height = height,
         },
@@ -58,10 +58,10 @@ fn renderTag(
 
     const tag_focused_indicator = [_]pixman.Rectangle16{
         .{
-            .x = 2,
-            .y = offset + 4,
-            .width = 4,
-            .height = height - 8,
+            .x = offset,
+            .y = 0,
+            .width = width,
+            .height = height,
         },
     };
     if (tag.focused) {
@@ -72,7 +72,7 @@ fn renderTag(
     var char = pixman.Image.createSolidFill(glyph_color).?;
     defer _ = char.unref();
     const glyph = try font.rasterizeCharUtf32(tag.label, .none);
-    const x = @divFloor(width - glyph.width, 2);
-    const y = offset + @divFloor(height - glyph.height, 2);
+    const x = offset + @divFloor(width - glyph.width, 2);
+    const y = @divFloor(height - glyph.height, 2);
     pixman.Image.composite32(.over, char, glyph.pix, pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
 }

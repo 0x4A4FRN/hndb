@@ -10,6 +10,7 @@ const Buffer = @import("../backend/Buffer.zig");
 const Tags = @This();
 
 const context = &@import("root").context;
+const config = &context.config;
 const render = @import("../render.zig");
 
 monitor: *Monitor,
@@ -22,10 +23,12 @@ pub const Tag = struct {
     occupied: bool = false,
 
     pub fn glyphColor(self: *const Tag) *pixman.Color {
-        if (self.focused or self.occupied) {
-            return &context.config.tag_foreground_color_focused;
+        if (self.focused) {
+            return &config.tag_foreground_color_focused;
+        } else if (self.occupied) {
+            return &config.tag_foreground_color_occupied;
         } else {
-            return &context.config.tag_foreground_color_normal;
+            return &config.tag_foreground_color_normal;
         }
     }
 };
