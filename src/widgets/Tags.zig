@@ -81,7 +81,11 @@ fn outputStatusListener(
     }
     if (tags.monitor.bar) |bar| {
         if (bar.configured) {
-            render.renderTags(bar) catch return;
+            render.renderTags(bar) catch |err| {
+                std.log.err("Failed to render Tags for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
+                return;
+            };
+
             bar.tags.surface.commit();
             bar.background.surface.commit();
         }

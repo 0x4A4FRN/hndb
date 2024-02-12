@@ -76,3 +76,60 @@ fn renderTag(
     const y = @divFloor(height - glyph.height, 2);
     pixman.Image.composite32(.over, char, glyph.pix, pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
 }
+
+pub fn renderClock(bar: *Bar, stdin: []const u8) !void {
+    const surface = bar.clock.surface;
+    const shm = context.wayland.shm.?;
+
+    const runes = try utils.toUtf8(context.gpa, stdin);
+    defer context.gpa.free(runes);
+
+    const font = context.config.fonts;
+    const run = try font.rasterizeTextRunUtf32(runes, .default);
+    defer run.destroy();
+
+    var width: u16 = getRenderWidth(run);
+    context.clock_width = width;
+
+    const font_height = @as(u32, @intCast(context.config.fonts.height));
+    var x_offset = @as(i32, @intCast(bar.width - width - 8));
+    var y_offset = @as(i32, @intCast(@divFloor(bar.height - font_height, 2)));
+    bar.clock.subsurface.setPosition(x_offset, y_offset);
+
+    const buffers = &bar.clock.buffers;
+    const buffer = try Buffer.nextBuffer(buffers, shm, width, bar.height);
+    if (buffer.buffer == null) return;
+    buffer.busy = true;
+
+    const bg_area = [_]pixman.Rectangle16{
+        .{ .x = 0, .y = 0, .width = width, .height = bar.height },
+    };
+    const bg_color = mem.zeroes(pixman.Color);
+    _ = pixman.Image.fillRectangles(.src, buffer.pix.?, &bg_color, 1, &bg_area);
+
+    var x: i32 = 0;
+    var i: usize = 0;
+    var color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
+    while (i < run.count) : (i += 1) {
+        const glyph = run.glyphs[i];
+        x += @as(i32, @intCast(glyph.x));
+        const y = context.config.fonts.ascent - @as(i32, @intCast(glyph.y));
+        pixman.Image.composite32(.over, color, glyph.pix, buffer.pix.?, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
+        x += glyph.advance.x - @as(i32, @intCast(glyph.x));
+    }
+
+    surface.setBufferScale(bar.monitor.scale);
+    surface.damageBuffer(0, 0, width, bar.height);
+    surface.attach(buffer.buffer, 0, 0);
+}
+
+fn getRenderWidth(run: *const fcft.TextRun) u16 {
+    var i: usize = 0;
+    var width: u16 = 0;
+
+    while (i < run.count) : (i += 1) {
+        width += @as(u16, @intCast(run.glyphs[i].advance.x));
+    }
+
+    return width;
+}

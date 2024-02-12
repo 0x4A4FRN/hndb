@@ -6,6 +6,7 @@ const os = std.os;
 const EventLoop = @This();
 
 const context = &@import("root").context;
+const render = @import("render.zig");
 
 sfd: os.fd_t,
 
@@ -24,18 +25,21 @@ pub fn init() !EventLoop {
 pub fn run(self: *EventLoop) !void {
     const wayland = &context.wayland;
 
-    var fds = [_]os.pollfd{
-        .{
-            .fd = self.sfd,
-            .events = os.POLL.IN,
-            .revents = undefined,
-        },
-        .{
-            .fd = wayland.fd,
-            .events = os.POLL.IN,
-            .revents = undefined,
-        },
-    };
+    var fds = [_]os.pollfd{ .{
+        .fd = self.sfd,
+        .events = os.POLL.IN,
+        .revents = undefined,
+    }, .{
+        .fd = wayland.fd,
+        .events = os.POLL.IN,
+        .revents = undefined,
+    }, .{
+        .fd = os.STDIN_FILENO,
+        .events = os.POLL.IN,
+        .revents = undefined,
+    } };
+
+    var reader = std.io.getStdIn().reader();
 
     while (true) {
         while (true) {
@@ -69,6 +73,25 @@ pub fn run(self: *EventLoop) !void {
         if (fds[1].revents & os.POLL.OUT != 0) {
             const errno = wayland.display.flush();
             if (errno != .SUCCESS) return;
+        }
+
+        if (fds[2].revents & os.POLL.IN != 0) {
+            for (context.wayland.monitors.items) |monitor| {
+                if (monitor.bar) |bar| {
+                    if (bar.configured) {
+                        var buff: [4096]u8 = undefined;
+                        var line = try reader.readUntilDelimiter(&buff, '\n');
+
+                        render.renderClock(bar, line) catch |err| {
+                            std.log.err("Failed to render Clock for monitor {}: {s}", .{ monitor.globalName, @errorName(err) });
+                            continue;
+                        };
+
+                        bar.clock.surface.commit();
+                        bar.background.surface.commit();
+                    }
+                }
+            }
         }
     }
 }

@@ -26,6 +26,7 @@ background: struct {
 },
 
 tags: Widget,
+clock: Widget,
 
 configured: bool,
 width: u16,
@@ -65,7 +66,10 @@ pub fn create(monitor: *Monitor) !*Bar {
     self.layer_surface.setListener(*Bar, layerSurfaceListener, self);
 
     self.tags = try Widget.init(self.background.surface);
+    self.clock = try Widget.init(self.background.surface);
 
+    self.tags.surface.commit();
+    self.clock.surface.commit();
     self.background.surface.commit();
 
     return self;
@@ -80,6 +84,7 @@ pub fn destroy(self: *Bar) void {
     self.background.buffer.destroy();
 
     self.tags.deinit();
+    self.clock.deinit();
 
     context.gpa.destroy(self);
 }
@@ -107,8 +112,9 @@ fn layerSurfaceListener(
                 return;
             };
 
-            bar.background.surface.commit();
             bar.tags.surface.commit();
+            bar.clock.surface.commit();
+            bar.background.surface.commit();
         },
         .closed => bar.destroy(),
     }

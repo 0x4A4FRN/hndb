@@ -17,6 +17,7 @@ pub const Context = struct {
     config: Config,
     wayland: Wayland,
     event_loop: Loop,
+    clock_width: u16,
 };
 
 pub var context: Context = undefined;
@@ -36,6 +37,7 @@ pub fn main() anyerror!void {
     context.config = try Config.init();
     context.wayland = try Wayland.init();
     context.event_loop = try Loop.init();
+    context.clock_width = 0;
 
     defer {
         context.wayland.deinit();
