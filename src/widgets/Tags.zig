@@ -7,6 +7,8 @@ const pixman = @import("pixman");
 const Monitor = @import("../backend/Monitor.zig");
 const Bar = @import("../Bar.zig");
 const Buffer = @import("../backend/Buffer.zig");
+const Input = @import("../backend/Input.zig");
+
 const Tags = @This();
 
 const context = &@import("root").context;
@@ -89,5 +91,21 @@ fn outputStatusListener(
             bar.tags.surface.commit();
             bar.background.surface.commit();
         }
+    }
+}
+
+pub fn handleClick(self: *Tags, x: u32, input: *Input) !void {
+    const control = context.wayland.control.?;
+
+    if (self.monitor.bar) |bar| {
+        _ = bar;
+        const index = x / context.config.tag_width;
+        const payload = try std.fmt.allocPrintZ(context.gpa, "{d}", .{@as(u32, 1) << @as(u5, @intCast(index))});
+        defer context.gpa.free(payload);
+
+        control.addArgument("set-focused-tags");
+        control.addArgument(payload);
+        const callback = try control.runCommand(input.seat);
+        _ = callback;
     }
 }

@@ -12,6 +12,7 @@ const zriver = @import("wayland").client.zriver;
 const Bar = @import("../Bar.zig");
 const Event = @import("../EventLoop.zig").Event;
 const Monitor = @import("Monitor.zig");
+const Input = @import("Input.zig");
 
 const Wayland = @This();
 
@@ -30,6 +31,7 @@ status_manager: ?*zriver.StatusManagerV1 = null,
 control: ?*zriver.ControlV1 = null,
 
 monitors: std.ArrayList(*Monitor),
+inputs: std.ArrayList(*Input),
 
 pub fn init() !Wayland {
     const display = try wl.Display.connect(null);
@@ -38,13 +40,16 @@ pub fn init() !Wayland {
         .display = display,
         .fd = @intCast(display.getFd()),
         .monitors = std.ArrayList(*Monitor).init(context.gpa),
+        .inputs = std.ArrayList(*Input).init(context.gpa),
     };
 }
 
 pub fn deinit(self: *Wayland) void {
     for (self.monitors.items) |monitor| monitor.destroy();
+    for (self.inputs.items) |input| input.destroy();
 
     self.monitors.deinit();
+    self.inputs.deinit();
 
     if (self.compositor) |global| global.destroy();
     if (self.subcompositor) |global| global.destroy();
@@ -95,6 +100,12 @@ fn registryListener(registry: *wl.Registry, event: wl.Registry.Event, self: *Way
                     break;
                 }
             }
+            for (self.inputs.items, 0..) |input, i| {
+                if (input.globalName == g.name) {
+                    self.inputs.swapRemove(i).destroy();
+                    break;
+                }
+            }
         },
     }
 }
@@ -119,5 +130,8 @@ fn bindGlobal(self: *Wayland, registry: *wl.Registry, name: u32, iface: [*:0]con
     } else if (mem.orderZ(u8, iface, wl.Output.getInterface().name) == .eq) {
         const monitor = try Monitor.create(registry, name);
         try self.monitors.append(monitor);
+    } else if (mem.orderZ(u8, iface, wl.Seat.getInterface().name) == .eq) {
+        const input = try Input.create(registry, name);
+        try self.inputs.append(input);
     }
 }
