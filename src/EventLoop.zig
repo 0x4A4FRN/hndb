@@ -82,7 +82,7 @@ pub fn run(self: *EventLoop) !void {
                         var buff: [4096]u8 = undefined;
                         var line = try reader.readUntilDelimiter(&buff, '\n');
 
-                        render.renderClock(bar, line) catch |err| {
+                        render.renderWidget(bar, &bar.clock, line, 0) catch |err| {
                             std.log.err("Failed to render Clock for monitor {}: {s}", .{ monitor.globalName, @errorName(err) });
                             continue;
                         };

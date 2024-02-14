@@ -8,6 +8,7 @@ const pixman = @import("pixman");
 const Buffer = @import("backend/Buffer.zig");
 const Bar = @import("Bar.zig");
 const Tag = @import("widgets/Tags.zig").Tag;
+const Widget = @import("backend/Widget.zig");
 
 const utils = @import("utils.zig");
 
@@ -77,11 +78,11 @@ fn renderTag(
     pixman.Image.composite32(.over, char, glyph.pix, pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
 }
 
-pub fn renderClock(bar: *Bar, stdin: []const u8) !void {
-    const surface = bar.clock.surface;
+pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !void {
+    const surface = widget.surface;
     const shm = context.wayland.shm.?;
 
-    const runes = try utils.toUtf8(context.gpa, stdin);
+    const runes = try utils.toUtf8(context.gpa, str);
     defer context.gpa.free(runes);
 
     const font = context.config.fonts;
@@ -89,14 +90,20 @@ pub fn renderClock(bar: *Bar, stdin: []const u8) !void {
     defer run.destroy();
 
     var width: u16 = getRenderWidth(run);
-    context.clock_width = width;
+    context.widget_widths[order] = width;
+
+    var i: usize = 0;
+    var total_widget_widths: u16 = 0;
+    while (i <= order) : (i += 1) {
+        total_widget_widths += context.widget_widths[i];
+    }
 
     const font_height = @as(u32, @intCast(context.config.fonts.height));
-    var x_offset = @as(i32, @intCast(bar.width - width - 8));
+    var x_offset = @as(i32, @intCast(bar.width - total_widget_widths - 8));
     var y_offset = @as(i32, @intCast(@divFloor(bar.height - font_height, 2)));
-    bar.clock.subsurface.setPosition(x_offset, y_offset);
+    widget.subsurface.setPosition(x_offset, y_offset);
 
-    const buffers = &bar.clock.buffers;
+    const buffers = &widget.buffers;
     const buffer = try Buffer.nextBuffer(buffers, shm, width, bar.height);
     if (buffer.buffer == null) return;
     buffer.busy = true;
@@ -108,7 +115,7 @@ pub fn renderClock(bar: *Bar, stdin: []const u8) !void {
     _ = pixman.Image.fillRectangles(.src, buffer.pix.?, &bg_color, 1, &bg_area);
 
     var x: i32 = 0;
-    var i: usize = 0;
+    i = 0;
     var color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
     while (i < run.count) : (i += 1) {
         const glyph = run.glyphs[i];
