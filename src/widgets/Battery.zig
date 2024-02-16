@@ -13,7 +13,6 @@ const Battery = @This();
 const context = &@import("root").context;
 
 ucontext: *udev.Udev,
-fd: os.fd_t,
 devices: DeviceList,
 
 const Device = struct {
@@ -25,19 +24,6 @@ const Device = struct {
 const DeviceList = std.ArrayList(Device);
 
 pub fn init() !Battery {
-    const tfd = tfd: {
-        const fd = os.linux.timerfd_create(
-            os.CLOCK.MONOTONIC,
-            os.linux.TFD.CLOEXEC,
-        );
-        const interval: os.linux.itimerspec = .{
-            .it_interval = .{ .tv_sec = 1, .tv_nsec = 0 },
-            .it_value = .{ .tv_sec = 1, .tv_nsec = 0 },
-        };
-        _ = os.linux.timerfd_settime(@as(i32, @intCast(fd)), 0, &interval, null);
-        break :tfd @as(os.fd_t, @intCast(fd));
-    };
-
     const ucontext = try udev.Udev.new();
 
     var devices = DeviceList.init(context.gpa);
@@ -45,7 +31,6 @@ pub fn init() !Battery {
 
     return Battery{
         .ucontext = ucontext,
-        .fd = tfd,
         .devices = devices,
     };
 }
@@ -66,13 +51,18 @@ pub fn print(self: *Battery) !void {
     var string = std.ArrayList(u8).init(context.gpa);
     defer string.deinit();
 
-    try std.fmt.format(string.writer(), "BAT {d}%", .{device.capacity});
+    if (std.mem.eql(u8, "Charging", device.status)) {
+        try std.fmt.format(string.writer(), "CHARGING {d}%", .{device.capacity});
+    } else {
+        try std.fmt.format(string.writer(), "BAT {d}%", .{device.capacity});
+    }
 
     for (context.wayland.monitors.items) |monitor| {
         if (monitor.bar) |bar| {
             if (bar.configured) {
                 try render.renderWidget(bar, &bar.battery, string.items, 1);
                 bar.battery.surface.commit();
+                bar.audio.surface.commit();
                 bar.background.surface.commit();
             }
         }
@@ -80,9 +70,6 @@ pub fn print(self: *Battery) !void {
 }
 
 pub fn refresh(self: *Battery) !void {
-    var expirations = std.mem.zeroes([8]u8);
-    _ = try os.read(self.fd, &expirations);
-
     self.print() catch return;
 }
 

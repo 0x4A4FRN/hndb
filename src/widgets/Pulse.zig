@@ -73,6 +73,10 @@ pub fn refresh(self: *Pulse) !void {
     var data = mem.zeroes([8]u8);
     _ = try os.read(self.fd, &data);
 
+    try self.print();
+}
+
+pub fn print(self: *Pulse) !void {
     var string = std.ArrayList(u8).init(context.gpa);
     defer string.deinit();
 

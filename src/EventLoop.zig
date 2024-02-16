@@ -41,10 +41,6 @@ pub fn run(self: *EventLoop) !void {
         .events = os.POLL.IN,
         .revents = undefined,
     }, .{
-        .fd = battery.fd,
-        .events = os.POLL.IN,
-        .revents = undefined,
-    }, .{
         .fd = audio.fd,
         .events = os.POLL.IN,
         .revents = undefined,
@@ -86,13 +82,11 @@ pub fn run(self: *EventLoop) !void {
 
         if (fds[2].revents & os.POLL.IN != 0) {
             try clock.refresh();
+            try battery.refresh();
+            try audio.print();
         }
 
         if (fds[3].revents & os.POLL.IN != 0) {
-            try battery.refresh();
-        }
-
-        if (fds[4].revents & os.POLL.IN != 0) {
             try audio.refresh();
         }
     }
