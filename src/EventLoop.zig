@@ -24,6 +24,9 @@ pub fn init() !EventLoop {
 
 pub fn run(self: *EventLoop) !void {
     const wayland = &context.wayland;
+    const battery = &context.battery;
+    const clock = &context.clock;
+    const audio = &context.audio;
 
     var fds = [_]os.pollfd{ .{
         .fd = self.sfd,
@@ -34,12 +37,18 @@ pub fn run(self: *EventLoop) !void {
         .events = os.POLL.IN,
         .revents = undefined,
     }, .{
-        .fd = os.STDIN_FILENO,
+        .fd = clock.fd,
+        .events = os.POLL.IN,
+        .revents = undefined,
+    }, .{
+        .fd = battery.fd,
+        .events = os.POLL.IN,
+        .revents = undefined,
+    }, .{
+        .fd = audio.fd,
         .events = os.POLL.IN,
         .revents = undefined,
     } };
-
-    var reader = std.io.getStdIn().reader();
 
     while (true) {
         while (true) {
@@ -76,22 +85,15 @@ pub fn run(self: *EventLoop) !void {
         }
 
         if (fds[2].revents & os.POLL.IN != 0) {
-            for (context.wayland.monitors.items) |monitor| {
-                if (monitor.bar) |bar| {
-                    if (bar.configured) {
-                        var buff: [4096]u8 = undefined;
-                        var line = try reader.readUntilDelimiter(&buff, '\n');
+            try clock.refresh();
+        }
 
-                        render.renderWidget(bar, &bar.clock, line, 0) catch |err| {
-                            std.log.err("Failed to render Clock for monitor {}: {s}", .{ monitor.globalName, @errorName(err) });
-                            continue;
-                        };
+        if (fds[3].revents & os.POLL.IN != 0) {
+            try battery.refresh();
+        }
 
-                        bar.clock.surface.commit();
-                        bar.background.surface.commit();
-                    }
-                }
-            }
+        if (fds[4].revents & os.POLL.IN != 0) {
+            try audio.refresh();
         }
     }
 }

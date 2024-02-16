@@ -7,3 +7,6 @@
 [submodule "deps/zig-wayland"]
 	path = deps/zig-wayland
 	url = https://github.com/ifreund/zig-wayland
+[submodule "deps/zig-udev"]
+	path = deps/zig-udev
+	url = https://git.sr.ht/~andreafeletto/zig-udev

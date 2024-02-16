@@ -86,6 +86,7 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     defer context.gpa.free(runes);
 
     const font = context.config.fonts;
+
     const run = try font.rasterizeTextRunUtf32(runes, .default);
     defer run.destroy();
 
@@ -95,11 +96,11 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     var i: usize = 0;
     var total_widget_widths: u16 = 0;
     while (i <= order) : (i += 1) {
-        total_widget_widths += context.widget_widths[i];
+        total_widget_widths += context.widget_widths[i] + 8;
     }
 
-    const font_height = @as(u32, @intCast(context.config.fonts.height));
-    var x_offset = @as(i32, @intCast(bar.width - total_widget_widths - 8));
+    const font_height = @as(u32, @intCast(font.height));
+    var x_offset = @as(i32, @intCast(bar.width - total_widget_widths));
     var y_offset = @as(i32, @intCast(@divFloor(bar.height - font_height, 2)));
     widget.subsurface.setPosition(x_offset, y_offset);
 
@@ -120,7 +121,7 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     while (i < run.count) : (i += 1) {
         const glyph = run.glyphs[i];
         x += @as(i32, @intCast(glyph.x));
-        const y = context.config.fonts.ascent - @as(i32, @intCast(glyph.y));
+        const y = font.ascent - @as(i32, @intCast(glyph.y));
         pixman.Image.composite32(.over, color, glyph.pix, buffer.pix.?, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
         x += glyph.advance.x - @as(i32, @intCast(glyph.x));
     }

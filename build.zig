@@ -39,6 +39,10 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const udev = b.createModule(.{
+        .source_file = .{ .path = "deps/zig-udev/udev.zig" },
+    });
+
     const exe = b.addExecutable(.{
         .name = "hndb",
         .root_source_file = .{ .path = "src/main.zig" },
@@ -49,10 +53,13 @@ pub fn build(b: *std.Build) void {
     exe.addModule("fcft", fcft);
     exe.addModule("pixman", pixman);
     exe.addModule("wayland", wayland);
+    exe.addModule("udev", udev);
 
     exe.linkLibC();
     exe.linkSystemLibrary("fcft");
     exe.linkSystemLibrary("pixman-1");
+    exe.linkSystemLibrary("libudev");
+    exe.linkSystemLibrary("libpulse");
     exe.linkSystemLibrary("wayland-client");
 
     scanner.addCSource(exe);

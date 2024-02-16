@@ -27,6 +27,8 @@ background: struct {
 
 tags: Widget,
 clock: Widget,
+battery: Widget,
+audio: Widget,
 
 configured: bool,
 width: u16,
@@ -67,9 +69,13 @@ pub fn create(monitor: *Monitor) !*Bar {
 
     self.tags = try Widget.init(self.background.surface);
     self.clock = try Widget.init(self.background.surface);
+    self.battery = try Widget.init(self.background.surface);
+    self.audio = try Widget.init(self.background.surface);
 
     self.tags.surface.commit();
     self.clock.surface.commit();
+    self.battery.surface.commit();
+    self.audio.surface.commit();
     self.background.surface.commit();
 
     return self;
@@ -85,6 +91,8 @@ pub fn destroy(self: *Bar) void {
 
     self.tags.deinit();
     self.clock.deinit();
+    self.battery.deinit();
+    self.audio.deinit();
 
     context.gpa.destroy(self);
 }
@@ -107,13 +115,15 @@ fn layerSurfaceListener(
             bg.surface.damageBuffer(0, 0, bar.width, bar.height);
             bg.viewport.setDestination(bar.width, bar.height);
 
-            render.renderTags(bar) catch |err| {
-                std.log.err("Failed to render Tags for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
-                return;
-            };
+            render.renderTags(bar) catch return;
+
+            context.clock.print() catch return;
+            context.battery.print() catch return;
 
             bar.tags.surface.commit();
             bar.clock.surface.commit();
+            bar.battery.surface.commit();
+            bar.audio.surface.commit();
             bar.background.surface.commit();
         },
         .closed => bar.destroy(),

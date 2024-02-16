@@ -23,6 +23,8 @@ tag_foreground_color_occupied: pixman.Color,
 
 fonts: *fcft.Font,
 
+clock_format: [*:0]const u8,
+
 fn parseColor(str: []const u8) !pixman.Color {
     var val = try std.fmt.parseUnsigned(u32, str[2..], 16);
     if (str.len == 8) {
@@ -40,7 +42,7 @@ fn parseColor(str: []const u8) !pixman.Color {
 }
 
 pub fn init() !Config {
-    var font_names = [_][*:0]const u8{ "Liberation Sans:size=14:style=bold", "aquafont:size=14" };
+    var fonts = [_][*:0]const u8{ "Liberation Sans:size=12:style=bold", "aquafont:size=14" };
 
     return Config{
         .bar_height = 24,
@@ -58,6 +60,7 @@ pub fn init() !Config {
         .tag_foreground_color_normal = try parseColor("0x757575FF"),
         .tag_foreground_color_focused = try parseColor("0x111111FF"),
         .tag_foreground_color_occupied = try parseColor("0xFFFFFFFF"),
-        .fonts = try fcft.Font.fromName(&font_names, null),
+        .fonts = try fcft.Font.fromName(&fonts, null),
+        .clock_format = "%H:%M %p",
     };
 }
