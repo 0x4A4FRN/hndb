@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+tag=$(git describe --exact-match)
+name="${tag#v}"
+mkdir -p "$name"
+git ls-files --recurse-submodules | xargs cp --parents -r -t "$name"
+tar -cavf "$name.tar.gz" "$name"
