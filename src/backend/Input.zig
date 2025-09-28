@@ -90,7 +90,7 @@ fn pointerListener(
                 const x = input.pointer.x;
                 if (x < context.config.tag_width * 9) {
                     bar.monitor.tags.handleClick(@intCast(x), input) catch |err| {
-                        std.log.err("Error on handleClick for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
+                        std.log.err("[HNDB] Error on handleClick for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
                     };
                 }
             }

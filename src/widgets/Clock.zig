@@ -9,18 +9,18 @@ const Clock = @This();
 
 const context = &@import("root").context;
 
-fd: os.fd_t,
+fd: os.linux.fd_t,
 
 pub fn init() !Clock {
     const tfd = tfd: {
-        const fd = os.linux.timerfd_create(os.CLOCK.MONOTONIC, os.linux.TFD.CLOEXEC);
+        const fd = os.linux.timerfd_create(.MONOTONIC, .{ .CLOEXEC = true });
         const interval: os.linux.itimerspec = .{
-            .it_interval = .{ .tv_sec = 1, .tv_nsec = 0 },
-            .it_value = .{ .tv_sec = 1, .tv_nsec = 0 },
+            .it_interval = .{ .sec = 1, .nsec = 0 },
+            .it_value = .{ .sec = 1, .nsec = 0 },
         };
 
-        _ = os.linux.timerfd_settime(@as(i32, @intCast(fd)), 0, &interval, null);
-        break :tfd @as(os.fd_t, @intCast(fd));
+        _ = os.linux.timerfd_settime(@as(i32, @intCast(fd)), .{}, &interval, null);
+        break :tfd @as(os.linux.fd_t, @intCast(fd));
     };
 
     return Clock{
@@ -48,7 +48,7 @@ pub fn print(self: *Clock) !void {
 
 pub fn refresh(self: *Clock) !void {
     var expirations = std.mem.zeroes([8]u8);
-    _ = try os.read(self.fd, &expirations);
+    _ = os.linux.read(self.fd, &expirations, 8);
 
     self.print() catch return;
 }

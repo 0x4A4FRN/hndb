@@ -75,7 +75,7 @@ fn renderTag(
     const glyph = try font.rasterizeCharUtf32(tag.label, .none);
     const x = offset + @divFloor(width - glyph.width, 2);
     const y = @divFloor(height - glyph.height, 2);
-    pixman.Image.composite32(.over, char, glyph.pix, pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
+    pixman.Image.composite32(.over, char, @as(?*pixman.Image, @ptrCast(glyph.pix)), pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
 }
 
 pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !void {
@@ -90,7 +90,7 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     const run = try font.rasterizeTextRunUtf32(runes, .default);
     defer run.destroy();
 
-    var width: u16 = getRenderWidth(run);
+    const width: u16 = getRenderWidth(run);
     context.widget_widths[order] = width;
 
     var i: usize = 0;
@@ -100,8 +100,8 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     }
 
     const font_height = @as(u32, @intCast(font.height));
-    var x_offset = @as(i32, @intCast(bar.width - total_widget_widths));
-    var y_offset = @as(i32, @intCast(@divFloor(bar.height - font_height, 2)));
+    const x_offset = @as(i32, @intCast(bar.width - total_widget_widths));
+    const y_offset = @as(i32, @intCast(@divFloor(bar.height - font_height, 2)));
     widget.subsurface.setPosition(x_offset, y_offset);
 
     const buffers = &widget.buffers;
@@ -117,12 +117,12 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
 
     var x: i32 = 0;
     i = 0;
-    var color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
+    const color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
     while (i < run.count) : (i += 1) {
         const glyph = run.glyphs[i];
         x += @as(i32, @intCast(glyph.x));
         const y = font.ascent - @as(i32, @intCast(glyph.y));
-        pixman.Image.composite32(.over, color, glyph.pix, buffer.pix.?, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
+        pixman.Image.composite32(.over, color, @as(?*pixman.Image, @ptrCast(glyph.pix)), buffer.pix.?, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
         x += glyph.advance.x - @as(i32, @intCast(glyph.x));
     }
 

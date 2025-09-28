@@ -27,7 +27,6 @@ background: struct {
 
 tags: Widget,
 clock: Widget,
-battery: Widget,
 audio: Widget,
 
 configured: bool,
@@ -69,12 +68,10 @@ pub fn create(monitor: *Monitor) !*Bar {
 
     self.tags = try Widget.init(self.background.surface);
     self.clock = try Widget.init(self.background.surface);
-    self.battery = try Widget.init(self.background.surface);
     self.audio = try Widget.init(self.background.surface);
 
     self.tags.surface.commit();
     self.clock.surface.commit();
-    self.battery.surface.commit();
     self.audio.surface.commit();
     self.background.surface.commit();
 
@@ -91,7 +88,6 @@ pub fn destroy(self: *Bar) void {
 
     self.tags.deinit();
     self.clock.deinit();
-    self.battery.deinit();
     self.audio.deinit();
 
     context.gpa.destroy(self);
@@ -118,11 +114,9 @@ fn layerSurfaceListener(
             render.renderTags(bar) catch return;
 
             context.clock.print() catch return;
-            context.battery.print() catch return;
 
             bar.tags.surface.commit();
             bar.clock.surface.commit();
-            bar.battery.surface.commit();
             bar.audio.surface.commit();
             bar.background.surface.commit();
         },

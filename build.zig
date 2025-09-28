@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const Scanner = @import("deps/zig-wayland/build.zig").Scanner;
+const Scanner = @import("wayland").Scanner;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -11,9 +11,9 @@ pub fn build(b: *std.Build) void {
     scanner.addSystemProtocol("stable/xdg-shell/xdg-shell.xml");
     scanner.addSystemProtocol("stable/viewporter/viewporter.xml");
     scanner.addSystemProtocol("staging/single-pixel-buffer/single-pixel-buffer-v1.xml");
-    scanner.addCustomProtocol("protocol/wlr-layer-shell-unstable-v1.xml");
-    scanner.addCustomProtocol("protocol/river-status-unstable-v1.xml");
-    scanner.addCustomProtocol("protocol/river-control-unstable-v1.xml");
+    scanner.addCustomProtocol(b.path("protocol/wlr-layer-shell-unstable-v1.xml"));
+    scanner.addCustomProtocol(b.path("protocol/river-status-unstable-v1.xml"));
+    scanner.addCustomProtocol(b.path("protocol/river-control-unstable-v1.xml"));
 
     scanner.generate("wl_compositor", 4);
     scanner.generate("wl_subcompositor", 1);
@@ -26,34 +26,42 @@ pub fn build(b: *std.Build) void {
     scanner.generate("zriver_status_manager_v1", 1);
     scanner.generate("zriver_control_v1", 1);
 
-    const wayland = b.createModule(.{ .source_file = scanner.result });
+    const wayland = b.createModule(.{ .root_source_file = scanner.result });
 
-    const pixman = b.createModule(.{
-        .source_file = .{ .path = "deps/zig-pixman/pixman.zig" },
-    });
+    const pixman = b.dependency("pixman", .{});
 
-    const fcft = b.createModule(.{
-        .source_file = .{ .path = "deps/zig-fcft/fcft.zig" },
-        .dependencies = &.{
-            .{ .name = "pixman", .module = pixman },
-        },
-    });
+    const fcft = b.dependency("fcft", .{});
 
-    const udev = b.createModule(.{
-        .source_file = .{ .path = "deps/zig-udev/udev.zig" },
-    });
+    const udev = b.dependency("udev", .{});
 
     const exe = b.addExecutable(.{
         .name = "hndb",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{
+                    .name = "pixman",
+                    .module = pixman.module("pixman"),
+                },
+                .{
+                    .name = "fcft",
+                    .module = fcft.module("fcft"),
+                },
+                .{
+                    .name = "udev",
+                    .module = udev.module("udev"),
+                },
+                .{
+                    .name = "wayland",
+                    .module = wayland,
+                },
+            },
+        }),
+        .use_lld = true,
+        .use_llvm = true,
     });
-
-    exe.addModule("fcft", fcft);
-    exe.addModule("pixman", pixman);
-    exe.addModule("wayland", wayland);
-    exe.addModule("udev", udev);
 
     exe.linkLibC();
     exe.linkSystemLibrary("fcft");
@@ -62,7 +70,7 @@ pub fn build(b: *std.Build) void {
     exe.linkSystemLibrary("libpulse");
     exe.linkSystemLibrary("wayland-client");
 
-    scanner.addCSource(exe);
+    // scanner.addCSource(exe);
 
     b.installArtifact(exe);
 

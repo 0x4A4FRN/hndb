@@ -1,48 +1,44 @@
 const std = @import("std");
-const log = std.log;
-const mem = std.mem;
-const os = std.os;
 
 const EventLoop = @This();
 
 const context = &@import("root").context;
 const render = @import("render.zig");
 
-sfd: os.fd_t,
+sfd: std.posix.fd_t,
 
 pub fn init() !EventLoop {
-    var mask = os.empty_sigset;
-    os.linux.sigaddset(&mask, os.linux.SIG.INT);
-    os.linux.sigaddset(&mask, os.linux.SIG.TERM);
-    os.linux.sigaddset(&mask, os.linux.SIG.QUIT);
+    var mask = std.posix.sigemptyset();
+    std.posix.sigaddset(&mask, std.posix.SIG.INT);
+    std.posix.sigaddset(&mask, std.posix.SIG.TERM);
+    std.posix.sigaddset(&mask, std.posix.SIG.QUIT);
 
-    _ = os.linux.sigprocmask(os.linux.SIG.BLOCK, &mask, null);
-    const sfd = os.linux.signalfd(-1, &mask, os.linux.SFD.NONBLOCK);
+    _ = std.posix.sigprocmask(std.posix.SIG.BLOCK, &mask, null);
+    const sfd = try std.posix.signalfd(-1, &mask, std.os.linux.SFD.NONBLOCK);
 
     return EventLoop{ .sfd = @intCast(sfd) };
 }
 
 pub fn run(self: *EventLoop) !void {
     const wayland = &context.wayland;
-    const battery = &context.battery;
     const clock = &context.clock;
     const audio = &context.audio;
 
-    var fds = [_]os.pollfd{ .{
+    var fds = [_]std.posix.pollfd{ .{
         .fd = self.sfd,
-        .events = os.POLL.IN,
+        .events = std.posix.POLL.IN,
         .revents = undefined,
     }, .{
         .fd = wayland.fd,
-        .events = os.POLL.IN,
+        .events = std.posix.POLL.IN,
         .revents = undefined,
     }, .{
         .fd = clock.fd,
-        .events = os.POLL.IN,
+        .events = std.posix.POLL.IN,
         .revents = undefined,
     }, .{
         .fd = audio.fd,
-        .events = os.POLL.IN,
+        .events = std.posix.POLL.IN,
         .revents = undefined,
     } };
 
@@ -53,40 +49,39 @@ pub fn run(self: *EventLoop) !void {
             if (ret == .SUCCESS) break;
         }
 
-        _ = os.poll(&fds, -1) catch |err| {
-            log.err("poll failed: {s}", .{@errorName(err)});
+        _ = std.posix.poll(&fds, -1) catch |err| {
+            std.log.err("[HNDB] poll failed: {s}", .{@errorName(err)});
             return;
         };
 
         for (fds) |fd| {
-            if (fd.revents & os.POLL.HUP != 0 or fd.revents & os.POLL.ERR != 0) {
+            if (fd.revents & std.posix.POLL.HUP != 0 or fd.revents & std.posix.POLL.ERR != 0) {
                 return;
             }
         }
 
         // signals
-        if (fds[0].revents & os.POLL.IN != 0) {
+        if (fds[0].revents & std.posix.POLL.IN != 0) {
             return;
         }
 
         // wayland
-        if (fds[1].revents & os.POLL.IN != 0) {
+        if (fds[1].revents & std.posix.POLL.IN != 0) {
             const errno = wayland.display.dispatch();
             if (errno != .SUCCESS) return;
         }
 
-        if (fds[1].revents & os.POLL.OUT != 0) {
+        if (fds[1].revents & std.posix.POLL.OUT != 0) {
             const errno = wayland.display.flush();
             if (errno != .SUCCESS) return;
         }
 
-        if (fds[2].revents & os.POLL.IN != 0) {
+        if (fds[2].revents & std.posix.POLL.IN != 0) {
             try clock.refresh();
-            try battery.refresh();
             try audio.print();
         }
 
-        if (fds[3].revents & os.POLL.IN != 0) {
+        if (fds[3].revents & std.posix.POLL.IN != 0) {
             try audio.refresh();
         }
     }

@@ -1,0 +1,25 @@
+.{
+    .name = .hndb,
+    .version = "0.0.1",
+    .dependencies = .{
+        .udev = .{
+            .url = "git+https://git.sr.ht/~andreafeletto/zig-udev#442a1c2b6c9f1f672c234b9ee977e4d3c2408f9a",
+            .hash = "udev-0.1.0-dev-AAAAANBMAABk4sQjAQVyi6UhxhrVRb-rvnmYfTFnVvuK",
+        },
+        .fcft = .{
+            .url = "git+https://git.sr.ht/~novakane/zig-fcft#4bf5be61c869d08d5bcb0306049c63a9cb0795a7",
+            .hash = "fcft-3.0.0-zcx6CxQfAADhnwm8SjyCkQF-VFHGiVarigc2de3ciInC",
+        },
+        .pixman = .{
+            .url = "git+https://codeberg.org/ifreund/zig-pixman#387f04a0289a69d159c88b5f70396ec12a8ddb00",
+            .hash = "pixman-0.4.0-dev-LClMn0eVAAAlXnMK-MVBZkOG0urNdOPGVQdaGecXPM5O",
+        },
+        .wayland = .{
+            .url = "git+https://codeberg.org/ifreund/zig-wayland#1b5c038ec10da20ed3a15b0b2a6db1c21383e8ea",
+            .hash = "wayland-0.5.0-dev-lQa1khrMAQDJDwYFKpdH3HizherB7sHo5dKMECfvxQHe",
+        },
+    },
+    .minimum_zig_version = "0.16.0-dev.368+2a97e0af6",
+    .paths = .{"."},
+    .fingerprint = 0x3fb2480d539edb2c,
+}

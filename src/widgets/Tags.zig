@@ -84,7 +84,7 @@ fn outputStatusListener(
     if (tags.monitor.bar) |bar| {
         if (bar.configured) {
             render.renderTags(bar) catch |err| {
-                std.log.err("Failed to render Tags for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
+                std.log.err("[HNDB] Failed to render Tags for monitor {}: {s}", .{ bar.monitor.globalName, @errorName(err) });
                 return;
             };
 
@@ -100,7 +100,7 @@ pub fn handleClick(self: *Tags, x: u32, input: *Input) !void {
     if (self.monitor.bar) |bar| {
         _ = bar;
         const index = x / context.config.tag_width;
-        const payload = try std.fmt.allocPrintZ(context.gpa, "{d}", .{@as(u32, 1) << @as(u5, @intCast(index))});
+        const payload = try std.fmt.allocPrintSentinel(context.gpa, "{d}", .{@as(u32, 1) << @as(u5, @intCast(index))}, 0);
         defer context.gpa.free(payload);
 
         control.addArgument("set-focused-tags");

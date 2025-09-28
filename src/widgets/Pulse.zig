@@ -13,7 +13,7 @@ const Pulse = @This();
 
 const context = &@import("root").context;
 
-fd: os.fd_t,
+fd: std.posix.fd_t,
 mainloop: *pulse.pa_threaded_mainloop,
 api: *pulse.pa_mainloop_api,
 pa_context: *pulse.pa_context,
@@ -26,8 +26,8 @@ muted: bool,
 pub fn init() !Pulse {
     // create descriptor for poll in Loop
     const efd = efd: {
-        const fd = try os.eventfd(0, os.linux.EFD.NONBLOCK);
-        break :efd @as(os.fd_t, @intCast(fd));
+        const fd = try std.posix.eventfd(0, os.linux.EFD.NONBLOCK);
+        break :efd @as(std.posix.fd_t, @intCast(fd));
     };
 
     // setup pulseaudio api
@@ -71,26 +71,26 @@ pub fn start(self: *Pulse) !void {
 
 pub fn refresh(self: *Pulse) !void {
     var data = mem.zeroes([8]u8);
-    _ = try os.read(self.fd, &data);
+    _ = try std.posix.read(self.fd, &data);
 
     try self.print();
 }
 
 pub fn print(self: *Pulse) !void {
-    var string = std.ArrayList(u8).init(context.gpa);
-    defer string.deinit();
+    var string = std.ArrayList(u8).empty;
+    defer string.deinit(context.gpa);
 
     if (self.muted) {
-        try std.fmt.format(string.writer(), "VOL MUT", .{});
+        try string.print(context.gpa, "VOL MUT", .{});
     } else {
-        try std.fmt.format(string.writer(), "VOL {d}%", .{self.volume});
+        try string.print(context.gpa, "VOL {d}%", .{self.volume});
     }
 
     for (context.wayland.monitors.items) |monitor| {
         if (monitor.bar) |bar| {
             if (bar.configured) {
                 render.renderWidget(bar, &bar.audio, string.items, 2) catch |err| {
-                    std.log.err("{}", .{err});
+                    std.log.err("[HNDB] {}", .{err});
                 };
 
                 bar.audio.surface.commit();
@@ -127,10 +127,10 @@ export fn contextStateCallback(
             _ = pulse.pa_context_subscribe(ctx, mask, null, null);
         },
         pulse.PA_CONTEXT_TERMINATED, pulse.PA_CONTEXT_FAILED => {
-            log.info("pulse: restarting", .{});
+            log.info("[HNDB] pulse: restarting", .{});
             self.deinit();
             self.* = Pulse.init() catch return;
-            log.info("pulse: restarted", .{});
+            log.info("[HNDB] pulse: restarted", .{});
         },
         else => {},
     }
@@ -145,7 +145,7 @@ export fn serverInfoCallback(
 
     self.sink_name = mem.span(info.?.default_sink_name);
     self.sink_is_running = true;
-    log.info("pulse: sink set to {s}", .{self.sink_name});
+    log.info("[HNDB] pulse: sink set to {s}", .{self.sink_name});
 
     _ = pulse.pa_context_get_sink_info_list(ctx, sinkInfoCallback, self_opaque);
 }
@@ -188,7 +188,7 @@ export fn sinkInfoCallback(
     if (!self.sink_is_running and is_running) {
         self.sink_name = sink_name;
         self.sink_is_running = true;
-        log.info("pulse: sink set to {s}", .{sink_name});
+        log.info("[HNDB] pulse: sink set to {s}", .{sink_name});
     }
 
     self.volume = volume: {
@@ -200,5 +200,5 @@ export fn sinkInfoCallback(
     self.muted = info.mute != 0;
 
     const increment = mem.asBytes(&@as(u64, 1));
-    _ = os.write(self.fd, increment) catch return;
+    _ = std.posix.write(self.fd, increment) catch return;
 }

@@ -19,5 +19,5 @@ pub fn toUtf8(gpa: mem.Allocator, bytes: []const u8) ![]u32 {
         runes.appendAssumeCapacity(rune);
     }
 
-    return runes.toOwnedSlice();
+    return runes.toOwnedSlice(gpa);
 }

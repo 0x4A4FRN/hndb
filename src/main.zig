@@ -12,7 +12,6 @@ const Config = @import("Config.zig");
 const Loop = @import("EventLoop.zig");
 const Wayland = @import("backend/Wayland.zig");
 const Clock = @import("widgets/Clock.zig");
-const Battery = @import("widgets/Battery.zig");
 const Pulse = @import("widgets/Pulse.zig");
 
 pub const Context = struct {
@@ -21,7 +20,6 @@ pub const Context = struct {
     wayland: Wayland,
     event_loop: Loop,
     clock: Clock,
-    battery: Battery,
     audio: Pulse,
     widget_widths: [4]u16,
 };
@@ -43,7 +41,6 @@ pub fn main() anyerror!void {
     context.config = try Config.init();
     context.wayland = try Wayland.init();
     context.clock = try Clock.init();
-    context.battery = try Battery.init();
     context.audio = try Pulse.init();
     try context.audio.start();
     context.event_loop = try Loop.init();
@@ -51,7 +48,6 @@ pub fn main() anyerror!void {
 
     defer {
         context.wayland.deinit();
-        context.battery.deinit();
         context.audio.deinit();
     }
 

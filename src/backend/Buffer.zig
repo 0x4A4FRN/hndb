@@ -24,14 +24,14 @@ pub fn resize(self: *Buffer, shm: *wl.Shm, width: u31, height: u31) !void {
     self.width = width;
     self.height = height;
 
-    const fd = try os.memfd_create("hndb-shm-buffer-pool", os.linux.MFD.CLOEXEC);
-    defer os.close(fd);
+    const fd = try std.posix.memfd_create("hndb-shm-buffer-pool", std.os.linux.MFD.CLOEXEC);
+    defer std.posix.close(fd);
 
     const stride = width * 4;
     self.size = stride * height;
-    try os.ftruncate(fd, self.size);
+    _ = os.linux.ftruncate(@intCast(fd), self.size);
 
-    self.mmap = try os.mmap(null, self.size, os.PROT.READ | os.PROT.WRITE, os.MAP.SHARED, fd, 0);
+    self.mmap = try std.posix.mmap(null, self.size, os.linux.PROT.READ | os.linux.PROT.WRITE, .{ .TYPE = .SHARED }, @intCast(fd), 0);
     self.data = mem.bytesAsSlice(u32, self.mmap.?);
 
     const pool = try shm.createPool(fd, self.size);
@@ -47,7 +47,7 @@ pub fn resize(self: *Buffer, shm: *wl.Shm, width: u31, height: u31) !void {
 pub fn deinit(self: *Buffer) void {
     if (self.pix) |pix| _ = pix.unref();
     if (self.buffer) |buf| buf.destroy();
-    if (self.mmap) |mmap| os.munmap(mmap);
+    if (self.mmap) |mmap| _ = os.linux.munmap(mmap.ptr, mmap.len);
 }
 
 fn listener(_: *wl.Buffer, event: wl.Buffer.Event, buffer: *Buffer) void {
