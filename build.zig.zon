@@ -1,6 +1,6 @@
 .{
     .name = .hndb,
-    .version = "0.0.1",
+    .version = "0.1.1",
     .dependencies = .{
         .udev = .{
             .url = "git+https://git.sr.ht/~andreafeletto/zig-udev#442a1c2b6c9f1f672c234b9ee977e4d3c2408f9a",
