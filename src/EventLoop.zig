@@ -3,7 +3,6 @@ const std = @import("std");
 const EventLoop = @This();
 
 const context = &@import("root").context;
-const render = @import("render.zig");
 
 sfd: std.posix.fd_t,
 
@@ -16,7 +15,11 @@ pub fn init() !EventLoop {
     _ = std.posix.sigprocmask(std.posix.SIG.BLOCK, &mask, null);
     const sfd = try std.posix.signalfd(-1, &mask, std.os.linux.SFD.NONBLOCK);
 
-    return EventLoop{ .sfd = @intCast(sfd) };
+    return EventLoop{ .sfd = sfd };
+}
+
+pub fn deinit(self: *EventLoop) void {
+    if (self.sfd >= 0) _ = std.os.linux.close(self.sfd);
 }
 
 pub fn run(self: *EventLoop) !void {
@@ -76,9 +79,10 @@ pub fn run(self: *EventLoop) !void {
             if (errno != .SUCCESS) return;
         }
 
+        // clock tick: only redraw clock. Audio is redrawn on its own eventfd.
+        // (Previously both ran every second, doubling compositor load.)
         if (fds[2].revents & std.posix.POLL.IN != 0) {
             try clock.refresh();
-            try audio.print();
         }
 
         if (fds[3].revents & std.posix.POLL.IN != 0) {

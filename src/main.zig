@@ -27,7 +27,7 @@ pub const Context = struct {
 pub var context: Context = undefined;
 
 pub fn main() anyerror!void {
-    var gpa: heap.GeneralPurposeAllocator(.{}) = .{};
+    var gpa: heap.DebugAllocator(.{}) = .init;
     defer _ = gpa.deinit();
 
     if (@import("builtin").mode == .Debug) {
@@ -47,6 +47,8 @@ pub fn main() anyerror!void {
     @memset(&context.widget_widths, 0);
 
     defer {
+        context.event_loop.deinit();
+        context.clock.deinit();
         context.wayland.deinit();
         context.audio.deinit();
     }

@@ -34,41 +34,43 @@ pub fn build(b: *std.Build) void {
 
     const udev = b.dependency("udev", .{});
 
+    const root_module = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .imports = &.{
+            .{
+                .name = "pixman",
+                .module = pixman.module("pixman"),
+            },
+            .{
+                .name = "fcft",
+                .module = fcft.module("fcft"),
+            },
+            .{
+                .name = "udev",
+                .module = udev.module("udev"),
+            },
+            .{
+                .name = "wayland",
+                .module = wayland,
+            },
+        },
+    });
+
     const exe = b.addExecutable(.{
         .name = "hndb",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{
-                    .name = "pixman",
-                    .module = pixman.module("pixman"),
-                },
-                .{
-                    .name = "fcft",
-                    .module = fcft.module("fcft"),
-                },
-                .{
-                    .name = "udev",
-                    .module = udev.module("udev"),
-                },
-                .{
-                    .name = "wayland",
-                    .module = wayland,
-                },
-            },
-        }),
+        .root_module = root_module,
         .use_lld = true,
         .use_llvm = true,
     });
 
-    exe.linkLibC();
-    exe.linkSystemLibrary("fcft");
-    exe.linkSystemLibrary("pixman-1");
-    exe.linkSystemLibrary("libudev");
-    exe.linkSystemLibrary("libpulse");
-    exe.linkSystemLibrary("wayland-client");
+    root_module.linkSystemLibrary("fcft", .{});
+    root_module.linkSystemLibrary("pixman-1", .{});
+    root_module.linkSystemLibrary("libudev", .{});
+    root_module.linkSystemLibrary("libpulse", .{});
+    root_module.linkSystemLibrary("wayland-client", .{});
 
     // scanner.addCSource(exe);
 

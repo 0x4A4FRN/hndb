@@ -4,7 +4,7 @@ hndb is a statusbar for riverwm. It is mainly based on [levee](https://git.sr.ht
 
 ##### Build Dependencies
 
-- [zig](https://ziglang.org) 0.16.0-dev.368+2a97e0af6
+- [zig](https://ziglang.org) 0.16.0
 - [libpulse](https://www.freedesktop.org/wiki/Software/PulseAudio) 0.17.0
 - [fcft](https://codeberg.org/dnkl/fcft) 3.3.2
 - [wayland](https://wayland.freedesktop.org/) 1.24.0

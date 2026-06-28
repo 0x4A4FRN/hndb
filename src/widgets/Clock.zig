@@ -12,23 +12,23 @@ const context = &@import("root").context;
 fd: os.linux.fd_t,
 
 pub fn init() !Clock {
-    const tfd = tfd: {
-        const fd = os.linux.timerfd_create(.MONOTONIC, .{ .CLOEXEC = true });
-        const interval: os.linux.itimerspec = .{
-            .it_interval = .{ .sec = 1, .nsec = 0 },
-            .it_value = .{ .sec = 1, .nsec = 0 },
-        };
+    const fd_raw = os.linux.timerfd_create(.MONOTONIC, .{ .CLOEXEC = true });
+    const fd_i32: i32 = @intCast(fd_raw);
 
-        _ = os.linux.timerfd_settime(@as(i32, @intCast(fd)), .{}, &interval, null);
-        break :tfd @as(os.linux.fd_t, @intCast(fd));
+    const interval: os.linux.itimerspec = .{
+        .it_interval = .{ .sec = 1, .nsec = 0 },
+        .it_value = .{ .sec = 1, .nsec = 0 },
     };
 
-    return Clock{
-        .fd = tfd,
-    };
+    const rc = os.linux.timerfd_settime(fd_i32, .{}, &interval, null);
+    if (os.linux.errno(rc) != .SUCCESS) return error.TimerFdSetTimeFailed;
+
+    return Clock{ .fd = fd_i32 };
 }
 
-pub fn deinit() void {}
+pub fn deinit(self: *Clock) void {
+    if (self.fd >= 0) _ = os.linux.close(self.fd);
+}
 
 pub fn print(self: *Clock) !void {
     _ = self;
@@ -50,18 +50,19 @@ pub fn refresh(self: *Clock) !void {
     var expirations = std.mem.zeroes([8]u8);
     _ = os.linux.read(self.fd, &expirations, 8);
 
-    self.print() catch return;
+    try self.print();
 }
 
 fn formatDatetime(format: [*:0]const u8) ![]const u8 {
-    var buf = try context.gpa.alloc(u8, 256);
+    const buf = try context.gpa.alloc(u8, 64);
+    errdefer context.gpa.free(buf);
+
     const now = time.time(null);
     const local = time.localtime(&now);
-    const len = time.strftime(
-        buf.ptr,
-        buf.len,
-        format,
-        local,
-    );
+    if (local == null) return error.LocalTimeFailed;
+
+    const len = time.strftime(buf.ptr, buf.len, format, local);
+    if (len == 0) return error.StrftimeFailed;
+
     return context.gpa.realloc(buf, len);
 }

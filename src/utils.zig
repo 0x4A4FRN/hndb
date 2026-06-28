@@ -2,10 +2,10 @@ const std = @import("std");
 const mem = std.mem;
 const unicode = std.unicode;
 
-pub fn cast(comptime to: type) fn (*anyopaque) *to {
+pub fn cast(comptime to: type) fn (?*anyopaque) *to {
     return (struct {
-        pub fn cast(module: *anyopaque) *to {
-            return @ptrCast(@alignCast(module));
+        pub fn cast(module: ?*anyopaque) *to {
+            return @ptrCast(@alignCast(module orelse unreachable));
         }
     }).cast;
 }

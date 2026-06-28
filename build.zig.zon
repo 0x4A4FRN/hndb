@@ -3,23 +3,23 @@
     .version = "0.1.1",
     .dependencies = .{
         .udev = .{
-            .url = "git+https://git.sr.ht/~andreafeletto/zig-udev#442a1c2b6c9f1f672c234b9ee977e4d3c2408f9a",
-            .hash = "udev-0.1.0-dev-AAAAANBMAABk4sQjAQVyi6UhxhrVRb-rvnmYfTFnVvuK",
-        },
-        .fcft = .{
-            .url = "git+https://git.sr.ht/~novakane/zig-fcft#4bf5be61c869d08d5bcb0306049c63a9cb0795a7",
-            .hash = "fcft-3.0.0-zcx6CxQfAADhnwm8SjyCkQF-VFHGiVarigc2de3ciInC",
+            .url = "git+https://github.com/0x4A4FRN/zig-udev.git#1cd8ba480f8881d31e8b366c4b452f3bde3ded87",
+            .hash = "udev-0.1.0-dev-Z7D7pJBNAABamZOB1aWEbAgn73ABw-Ymcl_xTegMOK9v",
         },
         .pixman = .{
-            .url = "git+https://codeberg.org/ifreund/zig-pixman#387f04a0289a69d159c88b5f70396ec12a8ddb00",
+            .url = "git+https://github.com/0x4A4FRN/zig-pixman.git#387f04a0289a69d159c88b5f70396ec12a8ddb00",
             .hash = "pixman-0.4.0-dev-LClMn0eVAAAlXnMK-MVBZkOG0urNdOPGVQdaGecXPM5O",
         },
+        .fcft = .{
+            .url = "git+https://github.com/0x4A4FRN/zig-fcft.git#821b75975a278bb8128b62272df81dc6e16866f5",
+            .hash = "fcft-3.0.0-zcx6CzIfAAD0p9uHREDkHxfTvol3kr1SBjn5WgLa2OIa",
+        },
         .wayland = .{
-            .url = "git+https://codeberg.org/ifreund/zig-wayland#1b5c038ec10da20ed3a15b0b2a6db1c21383e8ea",
-            .hash = "wayland-0.5.0-dev-lQa1khrMAQDJDwYFKpdH3HizherB7sHo5dKMECfvxQHe",
+            .url = "git+https://github.com/0x4A4FRN/zig-wayland#a8e10e87e5ebb49ce518ac3d2198909c87ee615a",
+            .hash = "wayland-0.7.0-dev-lQa1kjT8AQDBstL61Gy3WCMtGwVaMN1p6w5wGfdDvP15",
         },
     },
-    .minimum_zig_version = "0.16.0-dev.368+2a97e0af6",
+    .minimum_zig_version = "0.16.0",
     .paths = .{"."},
     .fingerprint = 0x3fb2480d539edb2c,
 }

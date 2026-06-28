@@ -1,6 +1,5 @@
 const std = @import("std");
 const mem = std.mem;
-const time = @cImport(@cInclude("time.h"));
 
 const fcft = @import("fcft");
 const pixman = @import("pixman");
@@ -13,8 +12,6 @@ const Widget = @import("backend/Widget.zig");
 const utils = @import("utils.zig");
 
 const context = &@import("root").context;
-
-pub const RenderFn = fn (*Bar) anyerror!void;
 
 pub fn renderTags(bar: *Bar) !void {
     const surface = bar.tags.surface;
@@ -118,6 +115,7 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     var x: i32 = 0;
     i = 0;
     const color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
+    defer _ = color.unref();
     while (i < run.count) : (i += 1) {
         const glyph = run.glyphs[i];
         x += @as(i32, @intCast(glyph.x));

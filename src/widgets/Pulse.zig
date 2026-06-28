@@ -5,8 +5,6 @@ const os = std.os;
 
 const pulse = @cImport(@cInclude("pulse/pulseaudio.h"));
 
-const Event = @import("../EventLoop.zig").Event;
-const Input = @import("../backend/Input.zig");
 const render = @import("../render.zig");
 const utils = @import("../utils.zig");
 const Pulse = @This();
@@ -26,7 +24,8 @@ muted: bool,
 pub fn init() !Pulse {
     // create descriptor for poll in Loop
     const efd = efd: {
-        const fd = try std.posix.eventfd(0, os.linux.EFD.NONBLOCK);
+        const fd = os.linux.eventfd(0, os.linux.EFD.NONBLOCK);
+        if (os.linux.errno(fd) != .SUCCESS) return error.InitFailed;
         break :efd @as(std.posix.fd_t, @intCast(fd));
     };
 
@@ -71,7 +70,11 @@ pub fn start(self: *Pulse) !void {
 
 pub fn refresh(self: *Pulse) !void {
     var data = mem.zeroes([8]u8);
-    _ = try std.posix.read(self.fd, &data);
+    // Drain the eventfd non-blocking. EINTR/EAGAIN can happen and aren't fatal.
+    _ = std.posix.read(self.fd, &data) catch |err| switch (err) {
+        error.WouldBlock => return,
+        else => return err,
+    };
 
     try self.print();
 }
@@ -104,8 +107,6 @@ export fn contextStateCallback(
     ctx: ?*pulse.pa_context,
     self_opaque: ?*anyopaque,
 ) void {
-    const self = utils.cast(Pulse)(self_opaque.?);
-
     const ctx_state = pulse.pa_context_get_state(ctx);
     switch (ctx_state) {
         pulse.PA_CONTEXT_READY => {
@@ -127,10 +128,12 @@ export fn contextStateCallback(
             _ = pulse.pa_context_subscribe(ctx, mask, null, null);
         },
         pulse.PA_CONTEXT_TERMINATED, pulse.PA_CONTEXT_FAILED => {
-            log.info("[HNDB] pulse: restarting", .{});
-            self.deinit();
-            self.* = Pulse.init() catch return;
-            log.info("[HNDB] pulse: restarted", .{});
+            // Cannot tear down + spin up a new threaded mainloop from inside
+            // a PulseAudio callback reliably; the running mainloop still holds
+            // the api lock. Signal the main loop via SIGUSR1 instead: it will
+            // exit and the supervisor can restart the bar.
+            log.info("[HNDB] pulse: connection lost, exiting for supervisor restart", .{});
+            _ = std.c.raise(std.c.SIG.USR1);
         },
         else => {},
     }
@@ -141,7 +144,7 @@ export fn serverInfoCallback(
     info: ?*const pulse.pa_server_info,
     self_opaque: ?*anyopaque,
 ) void {
-    const self = utils.cast(Pulse)(self_opaque.?);
+    const self = utils.cast(Pulse)(self_opaque);
 
     self.sink_name = mem.span(info.?.default_sink_name);
     self.sink_is_running = true;
@@ -176,7 +179,7 @@ export fn sinkInfoCallback(
     _: c_int,
     self_opaque: ?*anyopaque,
 ) void {
-    const self = utils.cast(Pulse)(self_opaque.?);
+    const self = utils.cast(Pulse)(self_opaque);
     const info = maybe_info orelse return;
 
     const sink_name = mem.span(info.name);
@@ -200,5 +203,6 @@ export fn sinkInfoCallback(
     self.muted = info.mute != 0;
 
     const increment = mem.asBytes(&@as(u64, 1));
-    _ = std.posix.write(self.fd, increment) catch return;
+    const rc = os.linux.write(self.fd, increment.ptr, increment.len);
+    if (os.linux.errno(rc) != .SUCCESS) return;
 }

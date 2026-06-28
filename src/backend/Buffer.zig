@@ -24,18 +24,30 @@ pub fn resize(self: *Buffer, shm: *wl.Shm, width: u31, height: u31) !void {
     self.width = width;
     self.height = height;
 
+    // NOTE: libwayland-client does NOT take ownership of this fd. The wl_shm_pool
+    // (held internally by wl_buffer) does not close it either. Closing the fd
+    // here would break subsequent commits. We leak the fd intentionally; the
+    // kernel reclaims it on process exit. This matches upstream levee.
     const fd = try std.posix.memfd_create("hndb-shm-buffer-pool", std.os.linux.MFD.CLOEXEC);
-    defer std.posix.close(fd);
 
     const stride = width * 4;
     self.size = stride * height;
     _ = os.linux.ftruncate(@intCast(fd), self.size);
 
-    self.mmap = try std.posix.mmap(null, self.size, os.linux.PROT.READ | os.linux.PROT.WRITE, .{ .TYPE = .SHARED }, @intCast(fd), 0);
+    self.mmap = try std.posix.mmap(
+        null,
+        self.size,
+        .{ .READ = true, .WRITE = true },
+        .{ .TYPE = .SHARED },
+        @intCast(fd),
+        0,
+    );
     self.data = mem.bytesAsSlice(u32, self.mmap.?);
 
     const pool = try shm.createPool(fd, self.size);
-    defer pool.destroy();
+    // Pool is reference-counted internally by libwayland-client while any
+    // wl_buffer referencing it is alive. Destroy explicitly in deinit order.
+    errdefer pool.destroy();
 
     self.buffer = try pool.createBuffer(0, width, height, stride, .argb8888);
     errdefer self.buffer.?.destroy();

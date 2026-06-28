@@ -71,7 +71,7 @@ fn pointerListener(
             input.pointer.bar = bar;
             input.pointer.surface = data.surface;
         },
-        .leave => |_| {
+        .leave => {
             input.pointer.bar = null;
             input.pointer.surface = null;
         },
