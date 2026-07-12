@@ -15,14 +15,13 @@ fd: std.posix.fd_t,
 mainloop: *pulse.pa_threaded_mainloop,
 api: *pulse.pa_mainloop_api,
 pa_context: *pulse.pa_context,
-// owned by pulse api
 sink_name: []const u8,
 sink_is_running: bool,
+sink_ready: bool,
 volume: u8,
 muted: bool,
 
 pub fn init() !Pulse {
-    // create descriptor for poll in Loop
     const efd = efd: {
         const fd = os.linux.eventfd(0, os.linux.EFD.NONBLOCK);
         if (os.linux.errno(fd) != .SUCCESS) return error.InitFailed;
@@ -47,6 +46,7 @@ pub fn init() !Pulse {
         .pa_context = pa_context,
         .sink_name = "",
         .sink_is_running = false,
+        .sink_ready = false,
         .volume = 0,
         .muted = false,
     };
@@ -80,6 +80,8 @@ pub fn refresh(self: *Pulse) !void {
 }
 
 pub fn print(self: *Pulse) !void {
+    if (!self.sink_ready) return; // wait for first sinkInfoCallback
+
     var string = std.ArrayList(u8).empty;
     defer string.deinit(context.gpa);
 
@@ -128,10 +130,6 @@ export fn contextStateCallback(
             _ = pulse.pa_context_subscribe(ctx, mask, null, null);
         },
         pulse.PA_CONTEXT_TERMINATED, pulse.PA_CONTEXT_FAILED => {
-            // Cannot tear down + spin up a new threaded mainloop from inside
-            // a PulseAudio callback reliably; the running mainloop still holds
-            // the api lock. Signal the main loop via SIGUSR1 instead: it will
-            // exit and the supervisor can restart the bar.
             log.info("[HNDB] pulse: connection lost, exiting for supervisor restart", .{});
             _ = std.c.raise(std.c.SIG.USR1);
         },
@@ -202,7 +200,12 @@ export fn sinkInfoCallback(
     };
     self.muted = info.mute != 0;
 
+    const was_ready = self.sink_ready;
+    self.sink_ready = true;
+
     const increment = mem.asBytes(&@as(u64, 1));
     const rc = os.linux.write(self.fd, increment.ptr, increment.len);
     if (os.linux.errno(rc) != .SUCCESS) return;
+
+    _ = was_ready; // eventfd already triggers the event-loop redraw.
 }

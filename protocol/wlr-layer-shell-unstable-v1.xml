@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <protocol name="wlr_layer_shell_unstable_v1">
   <copyright>
     Copyright © 2017 Drew DeVault
@@ -60,17 +60,35 @@
         Clients can specify a namespace that defines the purpose of the layer
         surface.
       </description>
-      <arg name="id" type="new_id" interface="zwlr_layer_surface_v1"/>
-      <arg name="surface" type="object" interface="wl_surface"/>
-      <arg name="output" type="object" interface="wl_output" allow-null="true"/>
-      <arg name="layer" type="uint" enum="layer" summary="layer to add this surface to"/>
-      <arg name="namespace" type="string" summary="namespace for the layer surface"/>
+      <arg name="id" type="new_id" interface="zwlr_layer_surface_v1" />
+      <arg name="surface" type="object" interface="wl_surface" />
+      <arg
+                name="output"
+                type="object"
+                interface="wl_output"
+                allow-null="true"
+            />
+      <arg
+                name="layer"
+                type="uint"
+                enum="layer"
+                summary="layer to add this surface to"
+            />
+      <arg
+                name="namespace"
+                type="string"
+                summary="namespace for the layer surface"
+            />
     </request>
 
     <enum name="error">
-      <entry name="role" value="0" summary="wl_surface has another role"/>
-      <entry name="invalid_layer" value="1" summary="layer value is invalid"/>
-      <entry name="already_constructed" value="2" summary="wl_surface has a buffer attached or committed"/>
+      <entry name="role" value="0" summary="wl_surface has another role" />
+      <entry name="invalid_layer" value="1" summary="layer value is invalid" />
+      <entry
+                name="already_constructed"
+                value="2"
+                summary="wl_surface has a buffer attached or committed"
+            />
     </enum>
 
     <enum name="layer">
@@ -83,10 +101,10 @@
         single layer is undefined.
       </description>
 
-      <entry name="background" value="0"/>
-      <entry name="bottom" value="1"/>
-      <entry name="top" value="2"/>
-      <entry name="overlay" value="3"/>
+      <entry name="background" value="0" />
+      <entry name="bottom" value="1" />
+      <entry name="top" value="2" />
+      <entry name="overlay" value="3" />
     </enum>
 
     <!-- Version 3 additions -->
@@ -132,8 +150,8 @@
 
         Size is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="width" type="uint"/>
-      <arg name="height" type="uint"/>
+      <arg name="width" type="uint" />
+      <arg name="height" type="uint" />
     </request>
 
     <request name="set_anchor">
@@ -146,7 +164,7 @@
 
         Anchor is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="anchor" type="uint" enum="anchor"/>
+      <arg name="anchor" type="uint" enum="anchor" />
     </request>
 
     <request name="set_exclusive_zone">
@@ -184,7 +202,7 @@
 
         Exclusive zone is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="zone" type="int"/>
+      <arg name="zone" type="int" />
     </request>
 
     <request name="set_margin">
@@ -197,14 +215,16 @@
 
         Margin is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="top" type="int"/>
-      <arg name="right" type="int"/>
-      <arg name="bottom" type="int"/>
-      <arg name="left" type="int"/>
+      <arg name="top" type="int" />
+      <arg name="right" type="int" />
+      <arg name="bottom" type="int" />
+      <arg name="left" type="int" />
     </request>
 
     <enum name="keyboard_interactivity">
-      <description summary="types of keyboard interaction possible for a layer shell surface">
+      <description
+                summary="types of keyboard interaction possible for a layer shell surface"
+            >
         Types of keyboard interaction possible for layer shell surfaces. The
         rationale for this is twofold: (1) some applications are not interested
         in keyboard events and not allowing them to be focused can improve the
@@ -281,7 +301,11 @@
 
         Keyboard interactivity is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="keyboard_interactivity" type="uint" enum="keyboard_interactivity"/>
+      <arg
+                name="keyboard_interactivity"
+                type="uint"
+                enum="keyboard_interactivity"
+            />
     </request>
 
     <request name="get_popup">
@@ -294,7 +318,7 @@
         See the documentation of xdg_popup for more details about what an
         xdg_popup is and how it is used.
       </description>
-      <arg name="popup" type="object" interface="xdg_popup"/>
+      <arg name="popup" type="object" interface="xdg_popup" />
     </request>
 
     <request name="ack_configure">
@@ -315,7 +339,11 @@
         only the last request sent before a commit indicates which configure
         event the client really is responding to.
       </description>
-      <arg name="serial" type="uint" summary="the serial from the configure event"/>
+      <arg
+                name="serial"
+                type="uint"
+                summary="the serial from the configure event"
+            />
     </request>
 
     <request name="destroy" type="destructor">
@@ -347,9 +375,9 @@
         If the width or height arguments are zero, it means the client should
         decide its own window dimension.
       </description>
-      <arg name="serial" type="uint"/>
-      <arg name="width" type="uint"/>
-      <arg name="height" type="uint"/>
+      <arg name="serial" type="uint" />
+      <arg name="width" type="uint" />
+      <arg name="height" type="uint" />
     </event>
 
     <event name="closed">
@@ -363,17 +391,45 @@
     </event>
 
     <enum name="error">
-      <entry name="invalid_surface_state" value="0" summary="provided surface state is invalid"/>
-      <entry name="invalid_size" value="1" summary="size is invalid"/>
-      <entry name="invalid_anchor" value="2" summary="anchor bitfield is invalid"/>
-      <entry name="invalid_keyboard_interactivity" value="3" summary="keyboard interactivity is invalid"/>
+      <entry
+                name="invalid_surface_state"
+                value="0"
+                summary="provided surface state is invalid"
+            />
+      <entry name="invalid_size" value="1" summary="size is invalid" />
+      <entry
+                name="invalid_anchor"
+                value="2"
+                summary="anchor bitfield is invalid"
+            />
+      <entry
+                name="invalid_keyboard_interactivity"
+                value="3"
+                summary="keyboard interactivity is invalid"
+            />
     </enum>
 
     <enum name="anchor" bitfield="true">
-      <entry name="top" value="1" summary="the top edge of the anchor rectangle"/>
-      <entry name="bottom" value="2" summary="the bottom edge of the anchor rectangle"/>
-      <entry name="left" value="4" summary="the left edge of the anchor rectangle"/>
-      <entry name="right" value="8" summary="the right edge of the anchor rectangle"/>
+      <entry
+                name="top"
+                value="1"
+                summary="the top edge of the anchor rectangle"
+            />
+      <entry
+                name="bottom"
+                value="2"
+                summary="the bottom edge of the anchor rectangle"
+            />
+      <entry
+                name="left"
+                value="4"
+                summary="the left edge of the anchor rectangle"
+            />
+      <entry
+                name="right"
+                value="8"
+                summary="the right edge of the anchor rectangle"
+            />
     </enum>
 
     <!-- Version 2 additions -->
@@ -384,7 +440,12 @@
 
         Layer is double-buffered, see wl_surface.commit.
       </description>
-      <arg name="layer" type="uint" enum="zwlr_layer_shell_v1.layer" summary="layer to move this surface to"/>
+      <arg
+                name="layer"
+                type="uint"
+                enum="zwlr_layer_shell_v1.layer"
+                summary="layer to move this surface to"
+            />
     </request>
   </interface>
 </protocol>

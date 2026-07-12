@@ -21,7 +21,10 @@ pub fn renderTags(bar: *Bar) !void {
     const shm = context.wayland.shm.?;
 
     const width = context.config.tag_width * @as(u16, tags.len);
-    const buffer = try Buffer.nextBuffer(buffers, shm, width, bar.height);
+    const buffer = Buffer.nextBuffer(buffers, shm, width, bar.height) catch |err| switch (err) {
+        error.NoAvailableBuffers => return,
+        else => return err,
+    };
     if (buffer.buffer == null) return;
     buffer.busy = true;
 
@@ -87,7 +90,7 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     const run = try font.rasterizeTextRunUtf32(runes, .default);
     defer run.destroy();
 
-    const width: u16 = getRenderWidth(run);
+    const width: u16 = std.math.cast(u16, getRenderWidth(run)) orelse std.math.maxInt(u16);
     context.widget_widths[order] = width;
 
     var i: usize = 0;
@@ -102,7 +105,10 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     widget.subsurface.setPosition(x_offset, y_offset);
 
     const buffers = &widget.buffers;
-    const buffer = try Buffer.nextBuffer(buffers, shm, width, bar.height);
+    const buffer = Buffer.nextBuffer(buffers, shm, width, bar.height) catch |err| switch (err) {
+        error.NoAvailableBuffers => return,
+        else => return err,
+    };
     if (buffer.buffer == null) return;
     buffer.busy = true;
 
@@ -129,13 +135,83 @@ pub fn renderWidget(bar: *Bar, widget: *Widget, str: []const u8, order: usize) !
     surface.attach(buffer.buffer, 0, 0);
 }
 
-fn getRenderWidth(run: *const fcft.TextRun) u16 {
+fn getRenderWidth(run: *const fcft.TextRun) u32 {
     var i: usize = 0;
-    var width: u16 = 0;
+    var width: u32 = 0;
 
     while (i < run.count) : (i += 1) {
-        width += @as(u16, @intCast(run.glyphs[i].advance.x));
+        width += @as(u32, @intCast(run.glyphs[i].advance.x));
     }
 
     return width;
+}
+
+pub fn renderCenterTitle(bar: *Bar) !void {
+    const title_z = context.wayland.focused_view_title orelse return;
+    const title: []const u8 = title_z;
+
+    const surface = bar.title.surface;
+    const shm = context.wayland.shm.?;
+
+    const font = context.config.fonts;
+    const font_height: u32 = @intCast(font.height);
+    var width: u32 = 0;
+
+    if (title.len != 0) {
+        const runes = try utils.toUtf8(context.gpa, title);
+        defer context.gpa.free(runes);
+
+        const run = try font.rasterizeTextRunUtf32(runes, .default);
+        defer run.destroy();
+        width = getRenderWidth(run);
+
+        if (width == 0) width = 1;
+
+        const max_w: u32 = if (bar.width > 8) @as(u32, @intCast(bar.width - 8)) else 1;
+        if (width > max_w) width = max_w;
+
+        const x_offset: i32 = @divFloor(@as(i32, @intCast(@as(i32, @intCast(bar.width)) - @as(i32, @intCast(width)))), 2);
+        const y_offset: i32 = @intCast(@divFloor(@as(i32, @intCast(bar.height)) - @as(i32, @intCast(font_height)), 2));
+        bar.title.subsurface.setPosition(x_offset, y_offset);
+
+        const buffers = &bar.title.buffers;
+        const width_u16: u16 = @intCast(width);
+        const buffer = Buffer.nextBuffer(buffers, shm, width_u16, bar.height) catch |err| switch (err) {
+            error.NoAvailableBuffers => return,
+            else => return err,
+        };
+        if (buffer.buffer == null) return;
+        buffer.busy = true;
+
+        const pix = buffer.pix.?;
+        const bg_area = [_]pixman.Rectangle16{
+            .{ .x = 0, .y = 0, .width = width_u16, .height = bar.height },
+        };
+        const bg_color = mem.zeroes(pixman.Color);
+        _ = pixman.Image.fillRectangles(.src, pix, &bg_color, 1, &bg_area);
+
+        if (run.count > 0) {
+            var x: i32 = 0;
+            const color = pixman.Image.createSolidFill(&context.config.bar_foreground_color).?;
+            defer _ = color.unref();
+            var i: usize = 0;
+            while (i < run.count) : (i += 1) {
+                const glyph = run.glyphs[i];
+                x += @as(i32, @intCast(glyph.x));
+                const y = font.ascent - @as(i32, @intCast(glyph.y));
+                pixman.Image.composite32(.over, color, @as(?*pixman.Image, @ptrCast(glyph.pix)), pix, 0, 0, 0, 0, x, y, glyph.width, glyph.height);
+                x += glyph.advance.x - @as(i32, @intCast(glyph.x));
+            }
+        }
+
+        surface.setBufferScale(bar.monitor.scale);
+        surface.damageBuffer(0, 0, width_u16, bar.height);
+        surface.attach(buffer.buffer, 0, 0);
+        return;
+    }
+
+    bar.title.subsurface.setPosition(0, 0);
+    surface.setBufferScale(bar.monitor.scale);
+    surface.damageBuffer(0, 0, bar.width, bar.height);
+    surface.attach(null, 0, 0);
 }

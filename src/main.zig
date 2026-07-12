@@ -54,5 +54,6 @@ pub fn main() anyerror!void {
     }
 
     try context.wayland.registerGlobals();
+    context.wayland.bindPendingSeatStatuses();
     try context.event_loop.run();
 }

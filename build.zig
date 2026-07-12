@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
     scanner.generate("wp_single_pixel_buffer_manager_v1", 1);
     scanner.generate("wp_viewporter", 1);
     scanner.generate("zwlr_layer_shell_v1", 1);
-    scanner.generate("zriver_status_manager_v1", 1);
+    scanner.generate("zriver_status_manager_v1", 4);
     scanner.generate("zriver_control_v1", 1);
 
     const wayland = b.createModule(.{ .root_source_file = scanner.result });

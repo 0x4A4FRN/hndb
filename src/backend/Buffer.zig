@@ -9,6 +9,7 @@ const Buffer = @This();
 
 mmap: ?[]align(4096) u8 = null,
 data: ?[]u32 = null,
+fd: std.posix.fd_t = -1,
 buffer: ?*wl.Buffer = null,
 pix: ?*pixman.Image = null,
 
@@ -23,30 +24,28 @@ pub fn resize(self: *Buffer, shm: *wl.Shm, width: u31, height: u31) !void {
     self.busy = true;
     self.width = width;
     self.height = height;
+    self.fd = -1;
 
-    // NOTE: libwayland-client does NOT take ownership of this fd. The wl_shm_pool
-    // (held internally by wl_buffer) does not close it either. Closing the fd
-    // here would break subsequent commits. We leak the fd intentionally; the
-    // kernel reclaims it on process exit. This matches upstream levee.
     const fd = try std.posix.memfd_create("hndb-shm-buffer-pool", std.os.linux.MFD.CLOEXEC);
+    self.fd = fd;
 
     const stride = width * 4;
     self.size = stride * height;
-    _ = os.linux.ftruncate(@intCast(fd), self.size);
+    _ = os.linux.ftruncate(fd, self.size);
 
     self.mmap = try std.posix.mmap(
         null,
         self.size,
         .{ .READ = true, .WRITE = true },
         .{ .TYPE = .SHARED },
-        @intCast(fd),
+        fd,
         0,
     );
     self.data = mem.bytesAsSlice(u32, self.mmap.?);
 
+    errdefer _ = os.linux.munmap(self.mmap.?.ptr, self.mmap.?.len);
+
     const pool = try shm.createPool(fd, self.size);
-    // Pool is reference-counted internally by libwayland-client while any
-    // wl_buffer referencing it is alive. Destroy explicitly in deinit order.
     errdefer pool.destroy();
 
     self.buffer = try pool.createBuffer(0, width, height, stride, .argb8888);
@@ -60,6 +59,13 @@ pub fn deinit(self: *Buffer) void {
     if (self.pix) |pix| _ = pix.unref();
     if (self.buffer) |buf| buf.destroy();
     if (self.mmap) |mmap| _ = os.linux.munmap(mmap.ptr, mmap.len);
+    if (self.fd >= 0) _ = std.os.linux.close(self.fd);
+
+    self.busy = false;
+    self.fd = -1;
+    self.buffer = null;
+    self.mmap = null;
+    self.pix = null;
 }
 
 fn listener(_: *wl.Buffer, event: wl.Buffer.Event, buffer: *Buffer) void {

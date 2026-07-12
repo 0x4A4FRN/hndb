@@ -4,6 +4,8 @@ const EventLoop = @This();
 
 const context = &@import("root").context;
 
+const render = @import("render.zig");
+
 sfd: std.posix.fd_t,
 
 pub fn init() !EventLoop {
@@ -79,8 +81,21 @@ pub fn run(self: *EventLoop) !void {
             if (errno != .SUCCESS) return;
         }
 
-        // clock tick: only redraw clock. Audio is redrawn on its own eventfd.
-        // (Previously both ran every second, doubling compositor load.)
+        if (wayland.title_dirty) {
+            wayland.title_dirty = false;
+            for (wayland.monitors.items) |monitor| {
+                if (monitor.bar) |bar| {
+                    if (bar.configured) {
+                        render.renderCenterTitle(bar) catch |err| {
+                            std.log.err("[HNDB] renderCenterTitle: {s}", .{@errorName(err)});
+                        };
+                        bar.title.surface.commit();
+                        bar.background.surface.commit();
+                    }
+                }
+            }
+        }
+
         if (fds[2].revents & std.posix.POLL.IN != 0) {
             try clock.refresh();
         }

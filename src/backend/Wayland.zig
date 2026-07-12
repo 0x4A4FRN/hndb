@@ -30,6 +30,9 @@ layer_shell: ?*zwlr.LayerShellV1 = null,
 status_manager: ?*zriver.StatusManagerV1 = null,
 control: ?*zriver.ControlV1 = null,
 
+focused_view_title: ?[:0]const u8 = null,
+title_dirty: bool = false,
+
 monitors: std.ArrayList(*Monitor),
 inputs: std.ArrayList(*Input),
 
@@ -51,6 +54,8 @@ pub fn deinit(self: *Wayland) void {
     self.monitors.deinit(context.gpa);
     self.inputs.deinit(context.gpa);
 
+    if (self.focused_view_title) |old| context.gpa.free(old);
+
     if (self.compositor) |global| global.destroy();
     if (self.subcompositor) |global| global.destroy();
     if (self.shm) |global| global.destroy();
@@ -61,6 +66,47 @@ pub fn deinit(self: *Wayland) void {
     if (self.control) |global| global.destroy();
 
     self.display.disconnect();
+}
+
+pub fn tryBindSeatStatus(self: *Wayland, input: *Input) !void {
+    if (input.status_bound) return;
+    const mgr = self.status_manager orelse return error.StatusManagerNotReady;
+    const ss = try mgr.getRiverSeatStatus(input.seat);
+    ss.setListener(*Wayland, seatStatusListener, self);
+    input.status_bound = true;
+}
+
+pub fn bindPendingSeatStatuses(self: *Wayland) void {
+    for (self.inputs.items) |input| {
+        self.tryBindSeatStatus(input) catch |err| {
+            std.log.debug("[HNDB] bindPendingSeatStatuses: {s}", .{@errorName(err)});
+        };
+    }
+}
+
+fn setFocusedViewTitle(self: *Wayland, slice: []const u8) void {
+    const new_z = context.gpa.dupeZ(u8, slice) catch |err| {
+        log.err("[HNDB] OOM duplicating title: {s}", .{@errorName(err)});
+        return;
+    };
+    if (self.focused_view_title) |old| context.gpa.free(old);
+    self.focused_view_title = new_z;
+    self.title_dirty = true;
+}
+
+fn seatStatusListener(
+    _: *zriver.SeatStatusV1,
+    event: zriver.SeatStatusV1.Event,
+    self: *Wayland,
+) void {
+    switch (event) {
+        .focused_view => |data| {
+            const z: [*:0]const u8 = @ptrCast(data.title);
+            const slice = std.mem.span(z);
+            self.setFocusedViewTitle(slice);
+        },
+        else => {},
+    }
 }
 
 pub fn registerGlobals(self: *Wayland) !void {
@@ -124,7 +170,7 @@ fn bindGlobal(self: *Wayland, registry: *wl.Registry, name: u32, iface: [*:0]con
     } else if (mem.orderZ(u8, iface, zwlr.LayerShellV1.interface.name) == .eq) {
         self.layer_shell = try registry.bind(name, zwlr.LayerShellV1, 1);
     } else if (mem.orderZ(u8, iface, zriver.StatusManagerV1.interface.name) == .eq) {
-        self.status_manager = try registry.bind(name, zriver.StatusManagerV1, 1);
+        self.status_manager = try registry.bind(name, zriver.StatusManagerV1, 4);
     } else if (mem.orderZ(u8, iface, zriver.ControlV1.interface.name) == .eq) {
         self.control = try registry.bind(name, zriver.ControlV1, 1);
     } else if (mem.orderZ(u8, iface, wl.Output.interface.name) == .eq) {

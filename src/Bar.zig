@@ -26,6 +26,7 @@ background: struct {
 },
 
 tags: Widget,
+title: Widget,
 clock: Widget,
 audio: Widget,
 
@@ -67,6 +68,7 @@ pub fn create(monitor: *Monitor) !*Bar {
     self.layer_surface.setListener(*Bar, layerSurfaceListener, self);
 
     self.tags = try Widget.init(self.background.surface);
+    self.title = try Widget.init(self.background.surface);
     self.clock = try Widget.init(self.background.surface);
     self.audio = try Widget.init(self.background.surface);
 
@@ -87,6 +89,7 @@ pub fn destroy(self: *Bar) void {
     self.background.buffer.destroy();
 
     self.tags.deinit();
+    self.title.deinit();
     self.clock.deinit();
     self.audio.deinit();
 
@@ -112,10 +115,13 @@ fn layerSurfaceListener(
             bg.viewport.setDestination(bar.width, bar.height);
 
             render.renderTags(bar) catch return;
+            render.renderCenterTitle(bar) catch return;
 
             context.clock.print() catch return;
+            context.audio.print() catch return;
 
             bar.tags.surface.commit();
+            bar.title.surface.commit();
             bar.clock.surface.commit();
             bar.audio.surface.commit();
             bar.background.surface.commit();

@@ -80,6 +80,9 @@ fn outputStatusListener(
                 }
             }
         },
+        // urgent_tags, layout_name, layout_name_clear: v4 events we don't
+        // visualize. Reserved for future indicator work.
+        else => {},
     }
     if (tags.monitor.bar) |bar| {
         if (bar.configured) {

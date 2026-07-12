@@ -8,6 +8,7 @@ const context = &@import("root").context;
 
 seat: *wl.Seat,
 globalName: u32,
+status_bound: bool,
 
 pointer: struct {
     pointer: ?*wl.Pointer,
@@ -21,12 +22,23 @@ pub fn create(registry: *wl.Registry, name: u32) !*Input {
     const self = try context.gpa.create(Input);
     self.seat = try registry.bind(name, wl.Seat, 7);
     self.globalName = name;
+    self.status_bound = false;
 
     self.pointer.pointer = null;
     self.pointer.bar = null;
     self.pointer.surface = null;
 
     self.seat.setListener(*Input, listener, self);
+
+    // Try to bind a river seat_status immediately. If status_manager hasn't
+    // arrived yet (registry order), this errors with StatusManagerNotReady
+    // and we leave the input marked unbound. Wayland.bindPendingSeatStatuses
+    // runs once after the registry roundtrip and finishes the job.
+    context.wayland.tryBindSeatStatus(self) catch |err| switch (err) {
+        error.StatusManagerNotReady => {},
+        else => return err,
+    };
+
     return self;
 }
 
