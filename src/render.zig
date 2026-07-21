@@ -157,8 +157,21 @@ pub fn renderCenterTitle(bar: *Bar) !void {
     const font_height: u32 = @intCast(font.height);
     var width: u32 = 0;
 
-    if (title.len != 0) {
-        const runes = try utils.toUtf8(context.gpa, title);
+    const max_len: usize = @intCast(context.config.title_max_len);
+    const title_for_render: []const u8 = truncate: {
+        if (title.len <= max_len) break :truncate title;
+        var view = std.unicode.Utf8View.init(title[0..max_len]) catch break :truncate title[0..max_len];
+        var it = view.iterator();
+        var last_good_end: usize = 0;
+        while (it.nextCodepoint()) |_| {
+            if (it.i > max_len) break;
+            last_good_end = it.i;
+        }
+        break :truncate title[0..last_good_end];
+    };
+
+    if (title_for_render.len != 0) {
+        const runes = try utils.toUtf8(context.gpa, title_for_render);
         defer context.gpa.free(runes);
 
         const run = try font.rasterizeTextRunUtf32(runes, .default);

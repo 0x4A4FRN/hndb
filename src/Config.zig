@@ -25,6 +25,8 @@ fonts: *fcft.Font,
 
 clock_format: [*:0]const u8,
 
+title_max_len: u16,
+
 fn parseColor(str: []const u8) !pixman.Color {
     var val = try std.fmt.parseUnsigned(u32, str[2..], 16);
     if (str.len == 8) {
@@ -62,5 +64,6 @@ pub fn init() !Config {
         .tag_foreground_color_occupied = try parseColor("0xFFFFFFFF"),
         .fonts = try fcft.Font.fromName(&fonts, null),
         .clock_format = "%H:%M %p",
+        .title_max_len = 64,
     };
 }
